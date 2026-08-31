@@ -1,0 +1,6 @@
+# Synap-Backend and Synap-Frontend are their own independent git repos
+# (pushed separately, mirroring Kash-Backend/Kash-Frontend) - not tracked here.
+Synap-Backend/
+Synap-Frontend/
+
+.env
