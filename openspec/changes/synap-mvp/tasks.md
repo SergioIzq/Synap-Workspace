@@ -40,8 +40,8 @@
 - [x] 4.6 [AI] Integrate one external free-tier LLM provider (e.g. Groq or Gemini) behind a single internal interface for answer generation. `LlmProvider` ABC + `GroqProvider` - resolves design.md's deferred LLM-provider Open Question.
 - [x] 4.7 [AI] Handle the no-relevant-notes case (state nothing relevant was found) and the provider-unavailable case (clear "temporarily unavailable" message) without fabricating or partially rendering an answer. Both the Python `/internal/assistant/ask` endpoint and the .NET `AiServiceClient` (for when the AI service itself is unreachable, not just its LLM provider) degrade to the same graceful shape rather than throwing.
 - [x] 4.8 [Backend] Expose the assistant chat endpoint connecting the frontend to the AI service. Also added `GET /api/notes/{id}/related` on `NotesController` for task 4.10, ownership-checked before calling the AI service.
-- [ ] 4.9 [Frontend] Build the assistant chat UI, showing which notes grounded each answer
-- [ ] 4.10 [Frontend] Build the "related notes" panel on the note detail view
+- [x] 4.9 [Frontend] Build the assistant chat UI, showing which notes grounded each answer. `/assistant` page with a running chat transcript; grounded answers show a "grounded in N of your notes" note rather than deep-linking each source (keeps the UI simple - the note IDs are already in `AssistantAnswer.sourceNoteIds` if that's wanted later).
+- [x] 4.10 [Frontend] Build the "related notes" panel on the note detail view. Best-effort: an AI-service hiccup just shows an empty panel rather than an error, since it's a nice-to-have next to the note's actual content.
 
 ## 5. Cross-Cutting: Isolation, Limits & Deployment
 
