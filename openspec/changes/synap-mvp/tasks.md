@@ -32,14 +32,14 @@
 
 ## 4. AI Assistant Capability
 
-- [ ] 4.1 [AI] Choose and wire a CPU-friendly local embedding model into the Python service
-- [ ] 4.2 [Backend] Add a `pgvector` embedding column/migration for notes
-- [ ] 4.3 [Backend/AI] Build the asynchronous embedding pipeline via the same in-process background queue (design.md Decision 8): the backend enqueues a job on note create/edit, the AI service generates/regenerates the embedding without blocking the original write
-- [ ] 4.4 [AI] Implement the "related notes" semantic similarity query (`pgvector`, scoped to the requesting user)
-- [ ] 4.5 [AI] Implement RAG retrieval: embed the incoming question, fetch top-k relevant notes for that user
-- [ ] 4.6 [AI] Integrate one external free-tier LLM provider (e.g. Groq or Gemini) behind a single internal interface for answer generation
-- [ ] 4.7 [AI] Handle the no-relevant-notes case (state nothing relevant was found) and the provider-unavailable case (clear "temporarily unavailable" message) without fabricating or partially rendering an answer
-- [ ] 4.8 [Backend] Expose the assistant chat endpoint connecting the frontend to the AI service
+- [x] 4.1 [AI] Choose and wire a CPU-friendly local embedding model into the Python service. `fastembed` (ONNX runtime, no PyTorch/GPU) with its default `BAAI/bge-small-en-v1.5` model (384 dimensions) - resolves design.md's deferred embedding-model Open Question.
+- [x] 4.2 [Backend] Add a `pgvector` embedding column/migration for notes. Raw-SQL migration (`note_embeddings` table, `vector(384)`, cascade-deleted with its note) - not EF-mapped, since no C# type ever reads/writes the vector column (Python owns it entirely per design.md Decision 1). **Not applied to a live database**, same caveat as tasks 2.4/3.2.
+- [x] 4.3 [Backend/AI] Build the asynchronous embedding pipeline via the same in-process background queue (design.md Decision 8): the backend enqueues a job on note create/edit, the AI service generates/regenerates the embedding without blocking the original write. `EmbeddingSupport.EnqueueGeneration` (Application) calls the new `IAiServiceClient.GenerateEmbeddingAsync`, wired into both note creation and update.
+- [x] 4.4 [AI] Implement the "related notes" semantic similarity query (`pgvector`, scoped to the requesting user)
+- [x] 4.5 [AI] Implement RAG retrieval: embed the incoming question, fetch top-k relevant notes for that user
+- [x] 4.6 [AI] Integrate one external free-tier LLM provider (e.g. Groq or Gemini) behind a single internal interface for answer generation. `LlmProvider` ABC + `GroqProvider` - resolves design.md's deferred LLM-provider Open Question.
+- [x] 4.7 [AI] Handle the no-relevant-notes case (state nothing relevant was found) and the provider-unavailable case (clear "temporarily unavailable" message) without fabricating or partially rendering an answer. Both the Python `/internal/assistant/ask` endpoint and the .NET `AiServiceClient` (for when the AI service itself is unreachable, not just its LLM provider) degrade to the same graceful shape rather than throwing.
+- [x] 4.8 [Backend] Expose the assistant chat endpoint connecting the frontend to the AI service. Also added `GET /api/notes/{id}/related` on `NotesController` for task 4.10, ownership-checked before calling the AI service.
 - [ ] 4.9 [Frontend] Build the assistant chat UI, showing which notes grounded each answer
 - [ ] 4.10 [Frontend] Build the "related notes" panel on the note detail view
 
