@@ -8,14 +8,14 @@
 
 ## 2. Identity Capability
 
-- [ ] 2.1 [Backend] Model the `User` aggregate and its registration/authentication behavior
-- [ ] 2.2 [Backend] Implement `RegisterUserCommand` (open self-registration, unique email enforcement, password hashing)
-- [ ] 2.3 [Backend] Implement `AuthenticateUserCommand` issuing a JWT access token
-- [ ] 2.4 [Backend] Add EF Core migration for the `Users` table
-- [ ] 2.5 [Backend] Add authentication middleware/authorization policy required on every knowledge-vault and ai-assistant endpoint
-- [ ] 2.6 [Backend] Add a `user_id`-scoping base/helper used by every repository and query so isolation can't be forgotten per-feature
-- [ ] 2.7 [Backend] Port Kash's personal-access-token feature (`GenerateApiTokenCommand`, `ApiTokenAuthenticationHandler`, `GetApiTokenStatusQuery`) for non-interactive authentication, to be reused by the quick-capture endpoint (task 3.4)
-- [ ] 2.8 [Frontend] Build registration and login screens, token storage, route guards for authenticated views, and the `auth.interceptor`/`error.interceptor`/`loading.interceptor` trio from Kash's `core/interceptors`
+- [x] 2.1 [Backend] Model the `User` aggregate and its registration/authentication behavior. Verified against the actual kernel DLLs via reflection (not guessed) - see design.md Decision 7 addendum.
+- [x] 2.2 [Backend] Implement `RegisterUserCommand` (open self-registration, unique email enforcement, password hashing)
+- [x] 2.3 [Backend] Implement `AuthenticateUserCommand` issuing a JWT access token
+- [x] 2.4 [Backend] Add EF Core migration for the `Users` table. Generated with `dotnet ef migrations add InitialCreate`; produces Postgres-native `uuid`/`timestamp with time zone` columns and a unique index on `email`. **Not applied to a live database** - no local Postgres/Docker available in this dev environment; run `dotnet ef database update` against a real instance before relying on it.
+- [x] 2.5 [Backend] Add authentication middleware/authorization policy required on every knowledge-vault and ai-assistant endpoint. Implemented as a global `FallbackPolicy` (`RequireAuthenticatedUser()`) so every future controller is protected by default unless marked `[AllowAnonymous]`, rather than a per-endpoint reminder.
+- [x] 2.6 [Backend] Add a `user_id`-scoping base/helper used by every repository and query so isolation can't be forgotten per-feature. `UserScopedRepositoryBase` in `Synap.Infrastructure/Persistence`, ready for Notes/Tags repositories (task 3.x) to inherit from.
+- [x] 2.7 [Backend] Port Kash's personal-access-token feature (`GenerateApiTokenCommand`, `ApiTokenAuthenticationHandler`, `GetApiTokenStatusQuery`) for non-interactive authentication, to be reused by the quick-capture endpoint (task 3.4)
+- [x] 2.8 [Frontend] Build registration and login screens, token storage, route guards for authenticated views, and the `auth.interceptor`/`error.interceptor`/`loading.interceptor` trio from Kash's `core/interceptors`. Two deliberate deviations from Kash, both noted in code comments: (1) plain-Angular-signals store instead of `@ngrx/signals`' `signalStore` - that package has no release supporting Angular 21 yet; (2) header/localStorage Bearer token instead of Kash's HttpOnly-cookie session, to stay consistent with the personal-access-token flow's own plain-Bearer model and avoid the CORS-credentials/cookie-attribute complexity cookies would add. No UI component library chosen yet, so the screens are functional but unstyled.
 
 ## 3. Knowledge Vault Capability
 
