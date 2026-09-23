@@ -30,6 +30,7 @@ services:
       JwtSettings__SecretKey: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
       AiService__BaseUrl: http://synap-ai:8000
       AiService__InternalApiKey: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required}
+      ASPNETCORE_URLS: http://+:80
     depends_on:
       postgres:
         condition: service_healthy
