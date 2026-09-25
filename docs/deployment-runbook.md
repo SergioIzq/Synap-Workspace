@@ -30,7 +30,8 @@ cp .env.example .env
 Rellena en `.env`:
 - `POSTGRES_PASSWORD` — contraseña nueva, no la de desarrollo local.
 - `JWT_SECRET_KEY` y `INTERNAL_API_KEY` — genera cada una con `openssl rand -base64 48`. Son
-  secretos distintos entre sí y distintos de cualquier valor usado en local.
+  secretos distintos entre sí y distintos de cualquier valor usado en local. `JWT_SECRET_KEY`
+  debe tener al menos 32 caracteres: si no, la API no arranca y lo indica en el log.
 - `SECRETS_ENCRYPTION_KEY` — clave maestra que cifra (AES-256-GCM) la API key de Groq de cada
   usuario. Genérala con `openssl rand -base64 32` (tienen que ser exactamente 32 bytes). **Haz
   copia de seguridad**: si se pierde, todas las keys guardadas quedan ilegibles y cada usuario
@@ -157,6 +158,46 @@ estado es Degraded, porque las notas siguen funcionando. Sirve para el monitor d
 `{ items, page, pageSize, totalCount }`. El frontend de esta misma versión ya lo usa; despliega
 los dos juntos.
 
-## 10. Cuando todo esto esté hecho
+## 10. Recuperación de contraseña por email (password-recovery)
+
+La API envía los emails de "¿Olvidaste tu contraseña?" con Brevo (`smtp-relay.brevo.com:587`,
+remitente "Synap" `<no-reply@sergioizq.com>`, que debe estar verificado en Brevo como remitente).
+**Las credenciales nunca van en el repo**: `appsettings.json` las tiene vacías.
+
+**VPS** — añade al `.env` (y comprueba que sigue en `chmod 600`):
+
+```
+PUBLIC_BASE_URL=https://synap.sergioizq.com
+EMAIL_SMTP_USER=<usuario SMTP de Brevo, p. ej. xxxx@smtp-brevo.com>
+EMAIL_SMTP_PASS=<clave SMTP de Brevo, empieza por xsmtpsib->
+```
+
+`PUBLIC_BASE_URL` es obligatoria (sin barra final): con ella se construye el enlace del email.
+Sin `EMAIL_SMTP_*` la API arranca igual, pero no envía nada (se registra un aviso por cada email).
+
+```bash
+docker compose up -d --build
+docker compose exec synap-api printenv App__PublicBaseUrl
+```
+
+**Local (`dotnet run`)** — las credenciales van en user-secrets, fuera del repo:
+
+```bash
+cd Synap-Backend
+dotnet user-secrets set "EmailSettings:SmtpUser" "<usuario>" --project Synap.Api
+dotnet user-secrets set "EmailSettings:SmtpPass" "<clave>" --project Synap.Api
+```
+
+**Aviso al desplegar esta versión:** los tokens de sesión llevan ahora un sello de seguridad, y
+los emitidos antes no lo tienen, así que **todos los usuarios tendrán que volver a iniciar sesión
+una vez**. A partir de aquí, cambiar o restablecer la contraseña cierra la sesión en los demás
+dispositivos (el token del Atajo de iOS no se ve afectado).
+
+**Comprobación**: en la web, "¿Olvidaste tu contraseña?" con tu email → llega un correo de
+"Synap" con un botón; el enlace abre `/auth/reset-password`, permite elegir contraseña y después
+el login funciona solo con la nueva. Si el correo no llega, mira los errores en
+`docker compose exec synap-api sh -c 'sed "s/<[^>]*>/ /g" /app/logs/$(ls -t /app/logs | head -1) | grep -i email | tail'`.
+
+## 11. Cuando todo esto esté hecho
 
 Sigue con `docs/smoke-test-checklist.md` (tarea 5.5) para la prueba de extremo a extremo.

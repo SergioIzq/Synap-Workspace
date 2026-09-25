@@ -38,6 +38,12 @@ services:
       # Reverse-proxy address(es) whose X-Forwarded-For is trusted - needed for the per-IP login
       # rate limit to see real client IPs. See docs/deployment-runbook.md section 9.
       ForwardedHeaders__KnownProxies: ${FORWARDED_KNOWN_PROXIES:-}
+      # Transactional email (password recovery) through Brevo - credentials only ever come from
+      # the .env, never from the repo. Without them the API runs but sends no email.
+      EmailSettings__SmtpUser: ${EMAIL_SMTP_USER:-}
+      EmailSettings__SmtpPass: ${EMAIL_SMTP_PASS:-}
+      # Public URL of the web app, used to build the links in those emails.
+      App__PublicBaseUrl: ${PUBLIC_BASE_URL:?PUBLIC_BASE_URL is required (e.g. https://synap.sergioizq.com)}
       ASPNETCORE_URLS: http://+:80
     depends_on:
       postgres:
