@@ -30,6 +30,11 @@ services:
       JwtSettings__SecretKey: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
       AiService__BaseUrl: http://synap-ai:8000
       AiService__InternalApiKey: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required}
+      # Master key that encrypts each user's own Groq API key at rest - losing it makes every
+      # stored key unreadable (users would have to re-enter theirs). Back it up.
+      Secrets__EncryptionKey: ${SECRETS_ENCRYPTION_KEY:?SECRETS_ENCRYPTION_KEY is required}
+      # Only shown in Settings as "Por defecto (x)" - synap-ai is what applies it.
+      Ai__DefaultGroqModel: ${GROQ_MODEL:-qwen/qwen3.8-27b}
       ASPNETCORE_URLS: http://+:80
     depends_on:
       postgres:
@@ -46,7 +51,8 @@ services:
       SYNAP_AI_DATABASE_URL: >-
         postgresql://${POSTGRES_USER:-synap}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-synap}
       SYNAP_AI_INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required}
-      SYNAP_AI_GROQ_API_KEY: ${GROQ_API_KEY:-}
+      # No Groq API key here on purpose: every user brings their own, passed per request by
+      # synap-api. GROQ_MODEL is only the default model for users who haven't picked one.
       SYNAP_AI_GROQ_MODEL: ${GROQ_MODEL:-qwen/qwen3.8-27b}
     depends_on:
       postgres:

@@ -31,8 +31,13 @@ Rellena en `.env`:
 - `POSTGRES_PASSWORD` — contraseña nueva, no la de desarrollo local.
 - `JWT_SECRET_KEY` y `INTERNAL_API_KEY` — genera cada una con `openssl rand -base64 48`. Son
   secretos distintos entre sí y distintos de cualquier valor usado en local.
-- `GROQ_API_KEY` — puedes dejarlo vacío al principio; solo lo necesita el chat del asistente
-  (`/api/assistant/ask`). Captura, búsqueda, embeddings y notas relacionadas funcionan sin él.
+- `SECRETS_ENCRYPTION_KEY` — clave maestra que cifra (AES-256-GCM) la API key de Groq de cada
+  usuario. Genérala con `openssl rand -base64 32` (tienen que ser exactamente 32 bytes). **Haz
+  copia de seguridad**: si se pierde, todas las keys guardadas quedan ilegibles y cada usuario
+  tendrá que volver a introducir la suya. Sin ella la API no arranca.
+- `GROQ_MODEL` — solo el modelo **por defecto** para usuarios que no hayan elegido uno. Ya no
+  existe una `GROQ_API_KEY` del servidor: cada usuario configura su propia key en
+  Configuración > Asistente IA, así que el asistente no te cuesta nada.
 
 **Nunca comitees `.env`** (ya está en `.gitignore`).
 
@@ -93,6 +98,21 @@ subdominio propio, otro para la API → `synap-api` (puerto 8080 del host). `pos
 `synap-ai` deliberadamente no tienen puertos publicados en `docker-compose.yml` — no deben ser
 alcanzables desde fuera del propio stack.
 
-## 8. Cuando todo esto esté hecho
+## 8. Migrar a "cada usuario con su propia key de Groq" (byok-groq-and-settings)
+
+Si el servidor ya estaba desplegado con la antigua `GROQ_API_KEY` global:
+
+1. Genera la clave maestra y añádela al `.env`: `echo "SECRETS_ENCRYPTION_KEY=$(openssl rand -base64 32)" >> .env`.
+   Guárdala también fuera del servidor (gestor de contraseñas).
+2. Borra `GROQ_API_KEY` del `.env` — ya no se lee en ningún sitio.
+3. `docker compose up -d --build`. La migración `AddUserGroqSettings` solo añade columnas
+   nullable a `users`, sin pérdida de datos.
+4. A partir de aquí, los usuarios ven un aviso en el asistente hasta que guarden su propia key
+   (se obtiene en https://console.groq.com/keys).
+
+**Rollback**: vuelve a las imágenes anteriores y restaura `GROQ_API_KEY` en el `.env`. Las
+columnas nuevas son nullable y la versión anterior simplemente las ignora.
+
+## 9. Cuando todo esto esté hecho
 
 Sigue con `docs/smoke-test-checklist.md` (tarea 5.5) para la prueba de extremo a extremo.
