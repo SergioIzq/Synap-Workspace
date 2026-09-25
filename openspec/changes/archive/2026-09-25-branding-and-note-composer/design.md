@@ -39,7 +39,11 @@
 *Alternativa descartada: crear la nota y luego una petición por etiqueta desde el front.* No es atómico (se quedarían notas a medias si falla una etiqueta) y genera N+1 peticiones y N+1 toasts.
 
 ### 3. Tipo de nota en camelCase en la API
-`[JsonStringEnumMemberName("text"|"codeSnippet"|"bookmark")]` en `NoteType`, igual que en `AssistantAnswerStatus`, con un test de serialización. La entrada ya acepta cualquier combinación de mayúsculas, así que el Atajo de iOS no se ve afectado.
+Un `NoteTypeJsonConverter` (escribe camelCase y lee sin distinguir mayúsculas) aplicado con `[property: JsonConverter]` en las formas de respuesta (`NoteSearchResult.Type` y `RelatedNote.Type`). Un conversor a nivel de propiedad tiene prioridad sobre el conversor genérico del kernel.
+
+*Descartado al implementar: `[JsonStringEnumMemberName]` en el enum, como en `AssistantAnswerStatus`.* Hace que la **entrada** solo acepte el nombre exacto (`codeSnippet`): `"CodeSnippet"` pasaba a dar 400 y habría roto el Atajo de iOS o cualquier cliente que envíe el tipo en PascalCase. Lo detectó un test de la captura rápida.
+
+**Etiquetas:** la búsqueda de etiqueta existente pasa a ignorar mayúsculas y conserva la grafía original, para que `#Docker` reutilice `docker` en vez de crear una casi duplicada. Aplica también a añadir una etiqueta desde el detalle.
 
 ### 4. `NoteComposerComponent`
 - Estado replegado: el input actual. Al enfocarlo se despliega con título, `textarea` autoajustable, `p-autocomplete` múltiple de etiquetas (sugerencias de `NotesStore.allTags()`, admite etiquetas nuevas) y `p-selectbutton` de tipo (Auto, Texto, Código, Enlace).
