@@ -47,6 +47,7 @@ services:
         postgresql://${POSTGRES_USER:-synap}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-synap}
       SYNAP_AI_INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required}
       SYNAP_AI_GROQ_API_KEY: ${GROQ_API_KEY:-}
+      SYNAP_AI_GROQ_MODEL: ${GROQ_MODEL:-qwen/qwen3.8-27b}
     depends_on:
       postgres:
         condition: service_healthy

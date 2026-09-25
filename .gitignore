@@ -4,3 +4,4 @@ Synap-Backend/
 Synap-Frontend/
 
 .env
+docker-compose.override.yml
