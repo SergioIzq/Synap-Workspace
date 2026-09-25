@@ -1,5 +1,25 @@
 # Spec Delta
 
+## ADDED Requirements
+
+### Requirement: View a single note
+The system SHALL let a user retrieve any one of their own notes by its identifier, regardless of which search page it would appear on.
+
+#### Scenario: Own note retrieved
+- **WHEN** a user requests one of their notes by identifier
+- **THEN** the system returns that note with its tags
+
+#### Scenario: Another user's note not revealed
+- **WHEN** a user requests a note identifier that belongs to another user or does not exist
+- **THEN** the system responds that the note was not found, without revealing whether it exists
+
+### Requirement: List own tags
+The system SHALL let a user list all the tags they have used, independently of which notes are currently loaded.
+
+#### Scenario: All tags listed
+- **WHEN** a user requests their tags
+- **THEN** the system returns every tag name of that user, sorted alphabetically, and none of any other user
+
 ## MODIFIED Requirements
 
 ### Requirement: Full-text search

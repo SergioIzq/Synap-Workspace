@@ -35,6 +35,9 @@ services:
       Secrets__EncryptionKey: ${SECRETS_ENCRYPTION_KEY:?SECRETS_ENCRYPTION_KEY is required}
       # Only shown in Settings as "Por defecto (x)" - synap-ai is what applies it.
       Ai__DefaultGroqModel: ${GROQ_MODEL:-qwen/qwen3.8-27b}
+      # Reverse-proxy address(es) whose X-Forwarded-For is trusted - needed for the per-IP login
+      # rate limit to see real client IPs. See docs/deployment-runbook.md section 9.
+      ForwardedHeaders__KnownProxies: ${FORWARDED_KNOWN_PROXIES:-}
       ASPNETCORE_URLS: http://+:80
     depends_on:
       postgres:

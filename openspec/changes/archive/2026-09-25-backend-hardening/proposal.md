@@ -19,6 +19,7 @@ El backend cubre bien el MVP, pero le faltan garantías básicas de un servicio 
 - **Protección contra fuerza bruta**: límite de intentos por IP en `login` y `register`. Por encima del límite, la API responde 429 con un mensaje en español.
 - **Búsqueda paginada** (**BREAKING** en la forma de respuesta de `GET /api/notes/search`): acepta `page` y `pageSize` (máximo 50) y devuelve `{ items, page, pageSize, totalCount }`.
 - **Filtro por tipo de nota** en la búsqueda (`type=text|codeSnippet|bookmark`).
+- **Nota individual y lista de etiquetas** (añadido al implementar): `GET /api/notes/{id}` y `GET /api/tags`. Con la búsqueda paginada, el detalle ya no puede buscar la nota entre las cargadas (fallaría con notas fuera de la primera página) y el filtro de etiquetas ya no puede deducirse de ellas.
 - **Búsqueda en español**: índice de texto completo con una configuración adecuada a español y que ignora acentos, almacenado e indexado en lugar de calculado en cada consulta.
 - **Health checks reales**: `/health` informa del estado de Postgres y del ai-service.
 - **Frontend**:

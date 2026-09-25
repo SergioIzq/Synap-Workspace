@@ -113,6 +113,50 @@ Si el servidor ya estaba desplegado con la antigua `GROQ_API_KEY` global:
 **Rollback**: vuelve a las imágenes anteriores y restaura `GROQ_API_KEY` en el `.env`. Las
 columnas nuevas son nullable y la versión anterior simplemente las ignora.
 
-## 9. Cuando todo esto esté hecho
+## 9. Endurecimiento del backend (backend-hardening)
+
+**IP real detrás del proxy.** Login y registro tienen límite de intentos por IP (10 logins por
+minuto y 5 registros por hora). Detrás de nginx, la API ve la IP del proxy salvo que confíe en su
+`X-Forwarded-For`, y solo confía en las direcciones de `ForwardedHeaders__KnownProxies`
+(separadas por comas).
+
+- Si nginx corre en el host y llega a la API por el puerto publicado, la IP que ve la API es la
+  de la puerta de enlace de la red de Docker. Averíguala con
+  `docker network inspect synap-workspace_default -f '{{(index .IPAM.Config 0).Gateway}}'` y
+  ponla en el `.env`:
+
+  ```
+  FORWARDED_KNOWN_PROXIES=172.18.0.1
+  ```
+
+  y en `docker-compose.yml` (servicio `synap-api`): `ForwardedHeaders__KnownProxies: ${FORWARDED_KNOWN_PROXIES:-}`.
+- nginx debe enviar la cabecera: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`.
+- **Comprobación tras desplegar**: haz 11 intentos de login fallidos desde tu navegador. El
+  undécimo debe dar "Demasiados intentos". Si al hacerlo también se bloquea a otra persona desde
+  otra red, la IP del proxy no está bien configurada (todos comparten la misma).
+- **No pongas** direcciones que no sean tu proxy: cualquier cliente que llegue desde ellas podría
+  elegir su propia IP con `X-Forwarded-For` y saltarse el límite.
+
+**Migración de búsqueda (`AddNoteSearchVector`).** Se aplica sola al arrancar la API y:
+
+- instala la extensión `unaccent` (`CREATE EXTENSION`). El usuario de Postgres del compose es el
+  propietario de la base de datos, así que tiene permiso, igual que con `vector`. Si usas otro
+  usuario, un superusuario debe ejecutar antes `CREATE EXTENSION unaccent;`;
+- crea la configuración de texto `spanish_unaccent` y la columna generada `notes.search_vector`
+  con índice GIN. Reescribe la tabla `notes`, lo que con el volumen actual lleva segundos.
+
+Rollback: `dotnet ef database update AddUserGroqSettings` deshace la columna, el índice, la
+función y la configuración (deja instalada la extensión `unaccent`, que es inofensiva).
+
+**Health checks.** `GET /health` (anónimo) devuelve
+`{ "status": "Healthy|Degraded|Unhealthy", "checks": { "database": ..., "aiService": ... } }`:
+Healthy/Degraded con 200 y Unhealthy (Postgres caído) con 503. Con el servicio de IA caído el
+estado es Degraded, porque las notas siguen funcionando. Sirve para el monitor de disponibilidad.
+
+**Cambio de contrato.** `GET /api/notes/search` ahora está paginado y devuelve
+`{ items, page, pageSize, totalCount }`. El frontend de esta misma versión ya lo usa; despliega
+los dos juntos.
+
+## 10. Cuando todo esto esté hecho
 
 Sigue con `docs/smoke-test-checklist.md` (tarea 5.5) para la prueba de extremo a extremo.

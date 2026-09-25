@@ -29,7 +29,7 @@
 ### 1. Controlador `api/users/me`
 `GET /api/users/me`, `PUT /api/users/me/password` `{ currentPassword, newPassword }` y `DELETE /api/users/me` `{ password }` (body en DELETE, aceptado por ASP.NET Core y por `HttpClient` de Angular con `options.body`).
 
-La contraseña se valida con el mismo validador que `RegisterUserCommand`, extraído a una regla reutilizable. Una contraseña actual incorrecta devuelve `Error.Validation("La contraseña actual no es correcta.")`, no 401, para que el `errorInterceptor` no cierre la sesión.
+La contraseña se valida con una política común para registro y cambio de contraseña: **entre 8 y 128 caracteres** (decidido al implementar: el registro no tenía reglas en el backend, solo `minLength(8)` en el formulario del front, así que se adopta ese mínimo y se añade un máximo). Los usuarios existentes no se ven afectados hasta que cambien su contraseña. Una contraseña actual incorrecta devuelve `Error.Validation("La contraseña actual no es correcta.")`, no 401, para que el `errorInterceptor` no cierre la sesión.
 
 `GET /api/users/me` es independiente de `GET /api/settings` (cambio 1). El perfil es identidad; los settings son preferencias. El front puede seguir usando `settings.email` en la página de Configuración.
 

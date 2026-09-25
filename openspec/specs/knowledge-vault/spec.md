@@ -58,7 +58,7 @@ The system SHALL allow a user to update a note's content and to delete a note.
 - **THEN** the note is removed and no longer appears in search results or capture history
 
 ### Requirement: Full-text search
-The system SHALL let a user search their own notes by text content and retrieve matches ranked by relevance.
+The system SHALL let a user search their own notes by text content and retrieve matches ranked by relevance, in pages, optionally filtered by tag and by note type, matching Spanish text regardless of accents.
 
 #### Scenario: Search returns matching notes
 - **WHEN** a user searches for a term that appears in one or more of their notes
@@ -68,6 +68,36 @@ The system SHALL let a user search their own notes by text content and retrieve 
 - **WHEN** a user searches using a tag filter
 - **THEN** the system returns only notes carrying that tag
 
+#### Scenario: Search scoped to note type
+- **WHEN** a user searches using a note type filter (text, code snippet, or bookmark)
+- **THEN** the system returns only notes of that type
+
 #### Scenario: No matches found
 - **WHEN** a user searches for a term that matches none of their notes
 - **THEN** the system returns an empty result set rather than an error
+
+#### Scenario: Results are paginated
+- **WHEN** a user requests a page of results with a given page size
+- **THEN** the system returns at most that many notes for that page together with the total number of matches, and never more than 50 notes per page
+
+#### Scenario: Accent-insensitive Spanish matching
+- **WHEN** a user searches for "configuracion" and a note contains "configuración"
+- **THEN** that note is included in the results
+
+### Requirement: View a single note
+The system SHALL let a user retrieve any one of their own notes by its identifier, regardless of which search page it would appear on.
+
+#### Scenario: Own note retrieved
+- **WHEN** a user requests one of their notes by identifier
+- **THEN** the system returns that note with its tags
+
+#### Scenario: Another user's note not revealed
+- **WHEN** a user requests a note identifier that belongs to another user or does not exist
+- **THEN** the system responds that the note was not found, without revealing whether it exists
+
+### Requirement: List own tags
+The system SHALL let a user list all the tags they have used, independently of which notes are currently loaded.
+
+#### Scenario: All tags listed
+- **WHEN** a user requests their tags
+- **THEN** the system returns every tag name of that user, sorted alphabetically, and none of any other user
