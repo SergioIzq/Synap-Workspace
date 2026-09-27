@@ -31,6 +31,10 @@ docker compose up --build
 
 Levanta Postgres (con `pgvector`), la API, el servicio de IA y el frontend — ver `docker-compose.yml`.
 
+La web queda en http://localhost:4200 y llama a la API en el mismo origen (`/api`), igual que en producción. Aquí es el propio nginx del frontend quien reenvía `/api/` a `synap-api`, porque `docker-compose.yml` le define `SYNAP_API_UPSTREAM=http://synap-api:80`. En producción esa variable **no** se define: el proxy del VPS ya enruta `/api` y el contenedor solo sirve la SPA.
+
+Efecto secundario en local: la API ve todas las peticiones como si vinieran del nginx del frontend (no está en `ForwardedHeaders__KnownProxies`), así que el límite de intentos de login por IP es compartido por todos los clientes que entren por el puerto 4200.
+
 ## Dónde está el porqué de cada decisión
 
 Todo el razonamiento de arquitectura (por qué Postgres+pgvector, por qué IA híbrida local+free-tier, por qué el Atajo de iOS en vez de Share Target API, qué partes de los paquetes `SergioIzq.*.Kernel` se reutilizan y cuáles no...) está en:

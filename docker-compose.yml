@@ -76,6 +76,11 @@ services:
       context: ./Synap-Frontend
       dockerfile: Dockerfile
     restart: unless-stopped
+    environment:
+      # The web app calls the API at same-origin /api (its production build). In production
+      # the VPS reverse proxy routes /api; here the frontend's nginx forwards it itself.
+      # Leave unset wherever something else already routes /api.
+      SYNAP_API_UPSTREAM: http://synap-api:80
     depends_on:
       - synap-api
     ports:
