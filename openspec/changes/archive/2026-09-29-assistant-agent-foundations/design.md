@@ -85,7 +85,7 @@
 |---|---|---|
 | `search_notes` | `query` (string), `limit` (default 5, max 8) | `[{id, title, type, tags, snippet}]`, where `snippet` is the first 400 characters |
 | `read_note` | `note_id` | `{id, title, type, tags, content}`, with content truncated to the scoped-assistant budget |
-| `create_note` | `title`, `content`, `type` (`Text` or `Code`), `language?`, `tags[]` | `{id, title}` or `{error}` |
+| `create_note` | `title`, `content`, `type?` (`Text` or `Code`), `tags[]?` (notes have no language field, so none is asked for) | `{id, title}` or `{error}` |
 | `add_tags` | `note_id`, `tags[]` | `{id, tags}` or `{error}` |
 | `remember` | `text` | `{id}` or `{error: "memory_full" / "too_long"}` |
 
@@ -112,6 +112,7 @@ async def chat_step(messages, tools, api_key, model) -> StepResult
 - **`GroqProvider` maps it onto OpenAI-style `tools` and `tool_calls`.** Arguments are parsed with `json.loads`. Invalid JSON is returned to .NET as a tool call with `arguments_error`, and .NET answers it with an error result.
 - **The existing error mapping still applies:** `LlmInvalidCredentialsError`, `LlmRateLimitedError` and `LlmProviderUnavailableError`.
 - **New error `LlmToolsUnsupportedError`.** Groq returns a 400 that names `tools` or `tool_choice` when the model doesn't accept them; that 400 is mapped to this error.
+- **New error `LlmToolCallFailedError`.** Groq answers 400 with `code: "tool_use_failed"` when the model produced a tool call it could not parse. The step returns status `tool_call_failed`; `AssistantAgent` retries that step once and, if it fails again, answers the question through the RAG path.
 - **The message format is provider-neutral:** roles `system`, `user`, `assistant` (with optional `tool_calls`) and `tool`. Each provider translates it, so a future Anthropic provider only has to implement `chat_step`.
 - **`generate_answer` stays** for scoped questions and the no-tools fallback. It gains a `memory: list[str]` parameter.
 
@@ -120,6 +121,7 @@ async def chat_step(messages, tools, api_key, model) -> StepResult
 - **ai-service config gets an allowlist:** `tool_capable_models`, a list of model ids or prefixes. `/internal/llm/models` then returns `[{id, supports_actions}]` instead of `[str]`.
   - The .NET `GroqModelLookup` and `AiSettingsResponse` are adapted.
   - Old callers of `models: string[]` are only this API's own settings endpoint, so this is not a public break.
+- **The allowlist is checked where it lives.** `/internal/llm/step` answers `tools_unsupported` without calling Groq when tools are offered for a model outside `tool_capable_models`, so the .NET API needs no copy of the list: it always offers tools in the global conversation and falls back to RAG on that status.
 - **Runtime safety net:** when a step raises `LlmToolsUnsupportedError`, `AssistantAgent` falls back to the RAG path (Decision 6) for that question. It does not cache that fact; the allowlist is the source of truth.
 
 **Why an allowlist:** Groq's `/models` does not expose tool support. Probing each model on every settings load would spend the user's quota.
@@ -147,9 +149,9 @@ async def chat_step(messages, tools, api_key, model) -> StepResult
 
 **Hybrid search.** The new `/internal/search` endpoint is used by `search_notes`, and the RAG path uses the same function:
 - vector top 20, filtered by `user_id` and the current model;
-- full-text top 20: `websearch_to_tsquery('public.spanish_unaccent', q)` against `notes.search_vector`, filtered by `user_id`, ranked by `ts_rank_cd`;
+- full-text top 20: the query's lexemes OR-ed together (`plainto_tsquery('public.spanish_unaccent', q)` with `&` turned into `|`) against `notes.search_vector`, filtered by `user_id`, ranked by `ts_rank_cd`. `websearch_to_tsquery` ANDs every term, so a whole question almost never matches;
 - merged with Reciprocal Rank Fusion (k = 60);
-- a candidate is kept if it matched full text, or if its vector similarity is at least the recalibrated threshold;
+- a candidate is kept if its vector similarity is at least the threshold (0.45), or if it matched at least `min(2, number of lexemes in the query)` distinct lexemes of the query. A single shared lexeme is not enough: common words like "configurar" would otherwise keep unrelated notes;
 - the top `limit` are returned.
 
 **Why RRF:** it needs no score normalisation between cosine and `ts_rank`. The full-text "keep" rule is what satisfies the "Exact term found" scenario.
@@ -164,7 +166,8 @@ async def chat_step(messages, tools, api_key, model) -> StepResult
 | Global, model supports actions | Agent loop (Decision 1) | 1–4 |
 | Global, no action support (or `LlmToolsUnsupportedError`) | RAG: hybrid search, then `generate_answer` with memory and history | 1 |
 
-- **RAG path, nothing relevant:** today's canned `no_relevant_notes` answer is kept, with no Groq call.
+- **Answering without actions says why.** `/internal/assistant/ask` takes `actions_unavailable: "scope" | "model"`. The prompt then tells the model what it can't do and where the user can do it: the general conversation, a model with actions, or Settings > Memoria. That way "apúntame…" gets a useful answer instead of silence (specs/ai-assistant "No actions in a scoped conversation", "Action request without action support").
+- **RAG path, nothing relevant:** today's canned `no_relevant_notes` answer is kept, with no Groq call. The exception is `actions_unavailable: "model"`: the question may be a request rather than a question about notes, so the model still answers, with an empty context.
 - **Agent path:**
   - the model decides whether to search;
   - the system prompt requires saying "no he encontrado nada" instead of guessing when searches return nothing;
@@ -199,7 +202,7 @@ async def chat_step(messages, tools, api_key, model) -> StepResult
 POST /api/assistant/ask   (unchanged request shape; history now also accepted without scope)
 → {
     answer, sources, grounded, status, partialContext?, scope?,
-    actions: [ { type: "note_created" | "tags_added" | "memory_saved",
+    actions: [ { type: "noteCreated" | "tagsAdded" | "memorySaved",
                  noteId?, title?, tags?, text? } ]   // always present, possibly empty
   }
 ```
@@ -254,5 +257,46 @@ POST /api/assistant/ask   (unchanged request shape; history now also accepted wi
 
 ## Open Questions
 
-- The exact contents of `tool_capable_models`. They are filled in from the spike (task 1.2) with the Groq models that reliably pass the tool-use checks; they are config and can change freely.
 - Whether the similarity threshold of the vector half should differ between the RAG path and `search_notes`. It is tuned in the spike and doesn't change the contract.
+
+## Spike results (task 1.1, 2026-09-28)
+
+The user's local vault was almost entirely test data, so, with the user's agreement, the spike used a synthetic corpus instead: 50 realistic Spanish notes (technical and personal, with error codes, names, code and two long notes), 23 answerable questions worded differently from their note, and 8 questions with no answer in the corpus. fastembed 0.8.0 does not list `multilingual-e5-small`, so the candidates were the two multilingual sentence-transformers models; `multilingual-e5-large` (2.2 GB) was ruled out for the shared VPS.
+
+| Model | Vector hit@5 / MRR | Hybrid (RRF) hit@5 / MRR | Expected-note similarity (median) | Best irrelevant (p90) |
+|---|---|---|---|---|
+| `BAAI/bge-small-en-v1.5` (current) | 0.78 / 0.63 | 0.91 / 0.78 | 0.70 | 0.75 |
+| `paraphrase-multilingual-MiniLM-L12-v2` | 0.96 / 0.93 | 0.96 / 0.96 | 0.57 | 0.45 |
+| `paraphrase-multilingual-mpnet-base-v2` | 1.00 / 0.95 | 0.96 / 0.94 | 0.60 | 0.50 |
+
+- The current model cannot separate relevant from irrelevant notes: irrelevant ones score as high as the right one.
+- **Chosen: `paraphrase-multilingual-MiniLM-L12-v2`.** It is 384-dimensional, so the column keeps its dimension, and it is 0.22 GB. mpnet is marginally better on vectors alone, but it is 1 GB and 768-dimensional, and hybrid search closes the gap.
+- The only vector miss is a fact at the end of a long note (the 128-token window). The exact-word half of hybrid search finds it.
+- **Keep rule calibration** with MiniLM:
+
+  | Rule | Answerable found | Unanswerable with anything kept |
+  |---|---|---|
+  | sim ≥ 0.45 or any full-text match | 22/23 | 5/8 |
+  | sim ≥ 0.45 or full-text match with ≥ 2 query lexemes | 22/23 | 0/8 |
+  | sim ≥ 0.50 only | 15/23 | 0/8 |
+
+  **Chosen:** threshold 0.45, with a full-text keep that needs `min(2, query lexemes)` matched lexemes. The best similarity of an unanswerable question was 0.40.
+
+## Spike results (task 1.2, 2026-09-29)
+
+Six fixed prompts (create note, find-and-tag, remember, multi-search, no-tools question, deletion request) were run against the candidate Groq models on the free tier.
+
+| Model | create_note | add_tags | remember | multi_search | no_tools | delete_refused |
+|---|---|---|---|---|---|---|
+| `llama-3.3-70b-versatile` | 404 | 404 | 404 | 404 | 404 | 404 |
+| `llama-3.1-8b-instant` | 404 | 404 | 404 | 404 | 404 | 404 |
+| `llama3-8b-8192` | 400 | 400 | 400 | 400 | 400 | 400 |
+| `llama3-70b-8192` | 400 | 400 | 400 | 400 | 400 | 400 |
+| `gemma2-9b-it` | 400 | 400 | 400 | 400 | 400 | 400 |
+| `qwen/qwen3.8-27b` | ✅ tool | ✅ tool | ✅ tool | ✅ tool | ✅ text | ✅ refused |
+
+- The two `llama-3.x` models return 404 on the free tier (retired or renamed).
+- `llama3-*` and `gemma2` return a generic 400 for every call with `tools`; they do not support the tools parameter.
+- `qwen/qwen3.8-27b` passes all six checks: produces valid `tool_calls`, calls no tool for a factual question, and refuses the deletion request without calling any tool.
+
+**`tool_capable_models`: `["qwen/qwen3.8-27b"]`**

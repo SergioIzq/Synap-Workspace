@@ -44,11 +44,11 @@ The system SHALL let a user delete their stored Groq API key.
 - **THEN** the system erases it and reports the key as not configured, and the assistant becomes unavailable to that user until a new key is saved
 
 ### Requirement: Choose the assistant model
-The system SHALL let a user with a configured key choose which Groq chat model the assistant uses for them, from the chat models available to their key; when no model is chosen, the server's default model SHALL be used.
+The system SHALL let a user with a configured key choose which Groq chat model the assistant uses for them, from the chat models available to their key; when no model is chosen, the server's default model SHALL be used. The list of models SHALL indicate which ones support assistant actions.
 
 #### Scenario: Available models listed
 - **WHEN** a user with a configured key requests the list of models
-- **THEN** the system returns the chat-capable models Groq exposes for that key
+- **THEN** the system returns the chat-capable models Groq exposes for that key, each marked as supporting assistant actions or not
 
 #### Scenario: Model selected
 - **WHEN** a user selects a model from the available list
@@ -62,12 +62,20 @@ The system SHALL let a user with a configured key choose which Groq chat model t
 - **WHEN** a user has a configured key but never selected a model
 - **THEN** the assistant uses the server's default model
 
+#### Scenario: Action support shown in the picker
+- **WHEN** a user opens the model selector in the Settings page
+- **THEN** models that support assistant actions are marked as such, and choosing one that does not shows that the assistant will only answer questions with it
+
 ### Requirement: Settings page in the web app
-The web app SHALL provide a Settings page reachable from the main navigation, containing an AI assistant section (Groq key status, save/replace/delete, link to obtain a key, model selector), an iOS Shortcut section (personal access token status, generate/regenerate, copy) and an account section (user email).
+The web app SHALL provide a Settings page reachable from the main navigation, containing an AI assistant section (Groq key status, save/replace/delete, link to obtain a key, model selector), a "Memoria" section (the user's assistant memory entries), an iOS Shortcut section (personal access token status, generate/regenerate, copy) and an account section (user email).
 
 #### Scenario: Settings reachable from navigation
 - **WHEN** an authenticated user opens the main navigation
 - **THEN** a "Configuración" entry is present and leads to the Settings page
+
+#### Scenario: Memory section present
+- **WHEN** a user opens the Settings page
+- **THEN** the "Memoria" section is shown, whether or not a Groq key is configured
 
 #### Scenario: Personal access token generated from the UI
 - **WHEN** a user generates or regenerates their personal access token in the Settings page

@@ -65,11 +65,11 @@ The system SHALL let an authenticated user change their password after confirmin
 - **THEN** the system rejects the change with a validation message in Spanish
 
 ### Requirement: Delete account
-The system SHALL let an authenticated user permanently delete their account after confirming their password, removing all of their data: notes, tags, embeddings, stored Groq API key, and personal access token.
+The system SHALL let an authenticated user permanently delete their account after confirming their password, removing all of their data: notes, tags, embeddings, assistant memory entries, stored Groq API key, and personal access token.
 
 #### Scenario: Account deleted
 - **WHEN** a user confirms account deletion with their correct password
-- **THEN** the system removes the user and all their data, their existing session and personal access token stop working, and the email becomes available for a new registration
+- **THEN** the system removes the user and all their data, including their assistant memory, their existing session and personal access token stop working, and the email becomes available for a new registration
 
 #### Scenario: Deletion with wrong password
 - **WHEN** a user requests account deletion with an incorrect password
