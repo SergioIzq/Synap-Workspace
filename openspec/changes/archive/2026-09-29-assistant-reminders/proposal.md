@@ -7,7 +7,7 @@ Hoy el asistente puede crear una nota cuando le dices "apúntame que tengo que r
 ## What Changes
 
 - El asistente reconoce peticiones de recordatorio ("recuérdame esto el viernes", "avísame en 2 semanas") y programa un aviso.
-- El aviso llega por un canal configurable (Telegram, push o email) en el momento indicado, con el texto de la nota o el fragmento relevante y un enlace directo.
+- El aviso llega por Telegram en el momento indicado, con el texto del recordatorio y un enlace directo a la nota cuando está vinculada. Push y email quedan para changes posteriores.
 - El usuario puede ver, editar y cancelar sus recordatorios pendientes desde la web.
 - Los recordatorios se pueden crear también manualmente desde una nota, sin pasar por el asistente.
 - Una nota puede tener más de un recordatorio.
@@ -20,8 +20,9 @@ Hoy el asistente puede crear una nota cuando le dices "apúntame que tengo que r
 
 ### Modified Capabilities
 
-- `ai-assistant`: nueva herramienta `set_reminder` disponible en la conversación global.
-- `assistant-memory`: el asistente puede usar la memoria para inferir el canal preferido del usuario.
+- `ai-assistant`: nueva herramienta `set_reminder` disponible en la conversación global, y resolución de momentos relativos en la zona horaria del usuario.
+
+`assistant-memory` no cambia: inferir el canal preferido a partir de la memoria no tiene sentido mientras Telegram sea el único canal. Se retoma cuando exista un segundo canal.
 
 ## Impact
 

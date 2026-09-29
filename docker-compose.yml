@@ -42,8 +42,16 @@ services:
       # the .env, never from the repo. Without them the API runs but sends no email.
       EmailSettings__SmtpUser: ${EMAIL_SMTP_USER:-}
       EmailSettings__SmtpPass: ${EMAIL_SMTP_PASS:-}
-      # Public URL of the web app, used to build the links in those emails.
+      # Public URL of the web app, used to build the links in those emails and in the reminders
+      # Synap sends over Telegram.
       App__PublicBaseUrl: ${PUBLIC_BASE_URL:?PUBLIC_BASE_URL is required (e.g. https://synap.sergioizq.com)}
+      # Reminder delivery over Telegram (assistant-reminders). Off by default: with Enabled=false
+      # the API runs and reminders can be managed, nothing is just delivered. See
+      # docs/telegram-bot-runbook.md for registering the bot and setting the webhook.
+      Telegram__Enabled: ${TELEGRAM_ENABLED:-false}
+      Telegram__BotToken: ${TELEGRAM_BOT_TOKEN:-}
+      Telegram__WebhookSecret: ${TELEGRAM_WEBHOOK_SECRET:-}
+      Telegram__BotUsername: ${TELEGRAM_BOT_USERNAME:-}
       ASPNETCORE_URLS: http://+:80
     depends_on:
       postgres:
