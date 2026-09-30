@@ -42,6 +42,7 @@ Opcionalmente, en la misma conversación:
 /setdescription   → Te aviso de tus recordatorios de Synap.
 /setuserpic       → (sube un icono)
 /setcommands      → start - Conectar tu cuenta de Synap
+                    briefing - Enviarme mi briefing ahora
 ```
 
 ## 2. Generar el secreto del webhook
@@ -139,8 +140,58 @@ que no cuentes líneas para contar llamadas.
 5. Crea un recordatorio para dentro de dos minutos y espera. Debe llegar con sus botones.
 6. Pulsa **⏰ En 1 hora**: el mensaje cambia a «Te lo recuerdo el …» y el recordatorio vuelve a estar
    pendiente en la web.
+7. Envíale `/briefing` al bot. Debe contestar con el resumen del día —o decir que no tienes nada
+   pendiente, si es el caso—, lo que confirma de paso que el chat quedó bien vinculado.
 
-## 6. Desarrollo local
+## 6. El briefing diario
+
+El briefing va **sobre este mismo bot y este mismo enlace de chat**: no hay nada más que dar de
+alta. Quien tenga Telegram conectado para sus recordatorios ya puede recibirlo; lo activa cada
+usuario desde **Configuración → Briefing diario**, eligiendo la hora.
+
+Dos cosas que conviene saber al operar:
+
+- El barrido es **un servicio aparte** del poller de recordatorios, y corre cada 15 minutos. Si se
+  cae, los recordatorios siguen entregándose; es a propósito.
+- Con `TELEGRAM_ENABLED=false` no arranca, igual que el poller. Lo dice al arrancar:
+
+```bash
+docker compose logs synap-api | grep "briefing sweep will not run"
+```
+
+### `/briefing`, a demanda
+
+El bot responde a `/briefing` enviando el resumen en el momento, sin esperar a la hora. No consume
+el briefing automático del día: ese llega igual. Y a diferencia del automático, si no hay nada que
+contar lo dice en vez de callarse.
+
+Un chat que no esté vinculado a ninguna cuenta recibe la misma respuesta que cualquier mensaje que
+el bot no entiende. Es deliberado: no se puede averiguar desde fuera si una cuenta existe.
+
+### Leer el log
+
+Todo lo del briefing sale por `docker compose logs synap-api`:
+
+```bash
+docker compose logs synap-api | grep -i briefing
+```
+
+| Lo que ves | Qué significa |
+|---|---|
+| `briefing sweep will not run` | La entrega está apagada en el despliegue. Nadie recibe nada. |
+| `Briefings sent: N` | Ese barrido envió N briefings. |
+| `was withheld: the user has no linked Telegram chat` | Lo tiene activado pero no ha conectado Telegram. **Sale una vez por usuario, no en cada barrido**, así que no cuentes líneas para contar barridos. El día queda sin resolver: en cuanto conecte, le llega el de hoy. |
+| `could not be delivered; it will be tried again today` | Telegram rechazó el envío. El día queda sin resolver y se reintenta cada 15 minutos hasta su medianoche. |
+| `The briefing of user … failed; the others are unaffected` | Algo reventó preparando el de ese usuario. Los demás sí se enviaron. |
+| `The briefing sweep tick failed` | Reventó el barrido entero. Se reintenta en el siguiente; el servicio no se muere. |
+| `A /briefing asked for by user … ended as …` | Alguien lo pidió a mano y no salió. El motivo va al final: `NoChatLinked` o `DeliveryFailed`. |
+
+**Silencio no es error.** Un día sin recordatorios, sin notas sin etiquetar y sin hilos abiertos no
+genera mensaje ni línea de log: el briefing automático calla y da el día por resuelto. Si alguien
+dice que no le llega, mira primero si tiene algo que contar —pidiéndolo con `/briefing`, que sí
+contesta siempre— antes de buscar una avería.
+
+## 7. Desarrollo local
 
 El webhook necesita una URL pública, así que en local tienes dos opciones:
 
@@ -171,3 +222,7 @@ docker compose up -d synap-api
 
 Las filas de `reminders` son inocuas con el poller parado: quedan pendientes y se entregan cuando
 vuelvas a activarlo. Las migraciones son aditivas, no hay nada que deshacer en la base de datos.
+
+Lo mismo vale para el briefing: `TELEGRAM_ENABLED=false` para el barrido y el comando a la vez, sin
+tocar los ajustes de nadie. Nada se marca como enviado mientras está apagado, así que al volver a
+activarlo el briefing de ese día sale en el siguiente barrido si su hora ya ha pasado.
