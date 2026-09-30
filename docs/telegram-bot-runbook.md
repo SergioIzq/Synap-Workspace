@@ -66,15 +66,20 @@ TELEGRAM_BOT_USERNAME=SynapRemindersBot
 
 `TELEGRAM_BOT_USERNAME` va **sin** la `@`: la web la pone al mostrar las instrucciones.
 
-Levanta la API con la nueva configuración:
+Levanta la API con la nueva configuración y busca la línea del poller:
 
 ```bash
 docker compose up -d synap-api
-docker compose logs -f synap-api | head -40
+docker compose logs synap-api | grep -i "reminder delivery"
 ```
 
 Con `TELEGRAM_ENABLED=false` verás `Reminder delivery is turned off; the poller will not run`. Con
 `true` no aparece esa línea: el poller ya está sondeando cada minuto.
+
+El `grep` no es cosmético. El log de la API lleva los health checks de cada 30 segundos, así que la
+línea de arranque queda enterrada a los pocos minutos; y `logs -f … | head` se queda esperando en
+vez de terminar. Si no sale nada y el contenedor lleva rato levantado, recréalo para volver a ver el
+arranque: `docker compose up -d --force-recreate synap-api`.
 
 ## 4. Registrar el webhook
 
@@ -105,6 +110,25 @@ antes de seguir.
 
 `allowed_updates` deja fuera todo lo que Synap no usa, así que el bot no recibe fotos, audios ni
 mensajes de canales.
+
+### Si Telegram recibe 401
+
+El endpoint responde un 401 pelado, sin detalle, tanto si la entrega está apagada como si el secreto
+no coincide: al llamante no se le dice nada porque está abierto a internet. El motivo sí queda en el
+log, que es donde tienes que mirarlo:
+
+```bash
+docker compose logs synap-api | grep "webhook call was rejected"
+```
+
+- `delivery is turned off or no webhook secret is configured` → `TELEGRAM_ENABLED` no está a `true`,
+  o falta `TELEGRAM_WEBHOOK_SECRET`. Repasa el paso 3 y recrea el contenedor.
+- `the secret it carried does not match the configured one` → el `secret_token` que registraste en
+  `setWebhook` no es el del `.env`. Vuelve a lanzar el `setWebhook` del paso 4 con el valor correcto.
+
+Sin línea ninguna, la llamada no llegó a la API: mira el proxy y `getWebhookInfo`. Cada motivo se
+registra como mucho una vez por minuto —el endpoint es público y cualquiera puede aporrearlo—, así
+que no cuentes líneas para contar llamadas.
 
 ## 5. Probarlo de punta a punta
 
