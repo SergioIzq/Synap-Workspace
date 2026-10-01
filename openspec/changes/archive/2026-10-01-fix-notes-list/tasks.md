@@ -2,8 +2,8 @@
 
 ## 1. Reproduce the card bug
 
-- [ ] 1.1 Ask the user where they see the cards cut off or disappearing: device, browser, installed PWA or tab, production or local, and what triggers it (loading, scrolling, creating a note, going back). Record the answer in design.md Decision 4. Verified when the trigger and environment are written down.
-- [ ] 1.2 Reproduce it in that environment, first in an incognito window to rule out a stale service worker. Capture a screenshot, plus the computed `opacity`, `transform` and height of the affected `app-note-card`. Verified when the bug is reproduced and the cause is identified, or when it is shown to happen only with an old SW build.
+- [x] 1.1 Ask the user where they see the cards cut off or disappearing: device, browser, installed PWA or tab, production or local, and what triggers it (loading, scrolling, creating a note, going back). Record the answer in design.md Decision 4. Verified when the trigger and environment are written down.
+- [x] 1.2 Reproduce it in that environment, first in an incognito window to rule out a stale service worker. Capture a screenshot, plus the computed `opacity`, `transform` and height of the affected `app-note-card`. Verified when the bug is reproduced and the cause is identified, or when it is shown to happen only with an old SW build.
 
 ## 2. Local stack: `/api` proxy
 
@@ -31,9 +31,9 @@
 
 ## 6. Fix the card bug
 
-- [ ] 6.1 Apply the fix for the cause found in 1.2. If it is the animation, remove `listAnimation` (or replace it with a CSS `animate.enter` that respects `prefers-reduced-motion`). Verified by a component test: after several quick list replacements, no `app-note-card` keeps an inline `opacity` or `transform`.
-- [ ] 6.2 Re-run the reproduction from 1.2 in the user's environment and ask the user to confirm the cards now display in full. Verified by the user's confirmation.
+- [x] 6.1 Apply the fix for the cause found in 1.2. If it is the animation, remove `listAnimation` (or replace it with a CSS `animate.enter` that respects `prefers-reduced-motion`). Verified by a component test: after several quick list replacements, no `app-note-card` keeps an inline `opacity` or `transform`.
+- [x] 6.2 Re-run the reproduction from 1.2 in the user's environment and ask the user to confirm the cards now display in full. Verified by the user's confirmation.
 
 ## 7. End-to-end check
 
-- [ ] 7.1 On the Compose stack with more than 45 notes of mixed types: sign in at `localhost:4200`, move between pages, change the size, filter, open a note and go back, then reload. Verified when the page, filters and results are preserved and every card is fully visible, on desktop and at a mobile width.
+- [x] 7.1 On the Compose stack with more than 45 notes of mixed types: sign in at `localhost:4200`, move between pages, change the size, filter, open a note and go back, then reload. Verified when the page, filters and results are preserved and every card is fully visible, on desktop and at a mobile width.
