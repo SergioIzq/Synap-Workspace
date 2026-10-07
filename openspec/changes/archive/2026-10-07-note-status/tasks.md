@@ -48,13 +48,13 @@ Ordered so the vault is usable before the briefing changes: groups 1–5 deliver
 - [x] 7.1 Add `NoteStatus`, `Note.status`, status on `CreateNoteRequest`, and the status filter on `NoteSearchParams` in `core/models/note.model.ts`; verify the project builds with `npm run build`
 - [x] 7.2 Add the status endpoint and the search parameter to `core/services/api/note.service.ts`; verify its unit tests cover the PATCH call and the serialization of a multi-valued filter including `none`
 - [x] 7.3 Add status to `NoteFilters`/`NotesQuery` in `notes.store.ts` with a `setStatus` action, and mirror it in the URL beside term/tag/type/page; verify a store test reloads a query with a status filter and gets the same state back
-- [ ] 7.4 Show the status as a Spanish badge in `note-card.component.ts`, nothing at all when there is none, without displacing the type indicator or the age; verify by eye in the running app that all four statuses and an unmarked note render correctly on mobile and desktop widths
-- [ ] 7.5 Let the user change and clear a note's status from the card, updating in place with a Spanish notification, and from `note-detail.page.ts`; verify in the running app that a change survives a page reload
-- [ ] 7.6 Add the multi-select status filter to `notes-list.page.ts`, including the "sin estado" option and a shortcut selecting pending + in progress + paused; verify in the running app that the default view shows unmarked notes and hides completed ones, and that selecting completed shows them
+- [x] 7.4 Show the status as a Spanish badge in `note-card.component.ts`, nothing at all when there is none, without displacing the type indicator or the age; verify by eye in the running app that all four statuses and an unmarked note render correctly on mobile and desktop widths
+- [x] 7.5 Let the user change and clear a note's status from the card, updating in place with a Spanish notification, and from `note-detail.page.ts`; verify in the running app that a change survives a page reload
+- [x] 7.6 Add the multi-select status filter to `notes-list.page.ts`, including the "sin estado" option and a shortcut selecting pending + in progress + paused; verify in the running app that the default view shows unmarked notes and hides completed ones, and that selecting completed shows them
 - [x] 7.7 Add the optional status selector to `note-composer.component.ts`, unset by default; verify creating a note without touching it produces a note with no status
 
 ## 8. Verification
 
 - [x] 8.1 Run `dotnet test` across `Synap.UnitTests` and `Synap.IntegrationTests` and verify everything passes, with no reference to the deleted markers left anywhere
 - [x] 8.2 Run `openspec validate note-status --strict` and verify it reports the change as valid
-- [ ] 8.3 In the running app, mark a handful of notes, request a briefing on demand, and verify it shows `🔨 En desarrollo` and `📋 Pendiente` with the right notes, no `🔎 Hilos abiertos`, and nothing reported for notes whose text merely contains "TODO"
+- [x] 8.3 In the running app, mark a handful of notes, request a briefing on demand, and verify it shows `🔨 En desarrollo` and `📋 Pendiente` with the right notes, no `🔎 Hilos abiertos`, and nothing reported for notes whose text merely contains "TODO"
