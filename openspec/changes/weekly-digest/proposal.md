@@ -1,3 +1,5 @@
+Seguimiento: SergioIzq/Synap-Workspace#6
+
 # Proposal
 
 ## Why

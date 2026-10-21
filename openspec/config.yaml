@@ -2,33 +2,32 @@ schema: spec-driven
 githubCopilot:
   cloudAgent: true
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+# Project context
+# Solo contexto de negocio del proyecto. Repos, ramas, build y alcance están en ../workspace.yaml.
+context: |
+  Synap: segundo cerebro personal. Captura de notas, snippets de código y enlaces con fricción cero desde cualquier dispositivo (PWA y Atajo de iOS), búsqueda híbrida y un asistente con IA (RAG) que responde anclado en el contenido del propio usuario; además recordatorios y briefing diario por Telegram. Cada usuario aporta su propia API key de Groq (BYOK): el servidor no tiene clave propia.
+  Repo multi-repo de solo especificación más la orquestación (docker-compose.yml) y runbooks (docs/): los repos de código, su stack y el alcance están en workspace.yaml. Specs por capacidad de negocio; lo exclusivo de un repo se marca con su id en mayúsculas ([<ID>]). Nunca usar el openspec/ de los repos de código.
+  Todo en español: nombres de capabilities y de changes (kebab-case en español, p. ej. boveda-conocimiento, asistente-ia), specs, proposal, design y tasks. Las palabras clave del formato OpenSpec se mantienen tal cual (## ADDED Requirements, ### Requirement:, #### Scenario:, SHALL, WHEN, THEN).
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+# Per-artifact rules
+rules:
+  proposal:
+    - Keep proposals to 500 words or fewer.
+    - Include explicit Scope and Non-goals sections.
+    - State which repos from workspace.yaml are affected, by id.
+  specs:
+    - If the change touches existing behavior that has no spec yet, describe it as ADDED with the resulting behavior.
+    - Write capability names, requirement titles, requirement text and scenarios in Spanish; keep only the OpenSpec keywords in English.
+  tasks:
+    - Group tasks by repo with "## N. <nombre> (<id>)" headings taken from workspace.yaml.
+    - Break work into small, independently verifiable tasks.
+    - Do not duplicate content already covered by the proposal or design.
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+# Per-operation guidance
+operations:
+  apply:
+    guidance:
+      - Keep implementation guidance and verification summaries concise.
+  archive:
+    guidance:
+      - Keep archive guidance concise and summarize only the final outcome.
