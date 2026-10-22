@@ -9,15 +9,13 @@ ramas:
 
 # Seguimiento de funcionalidades. 1 change = 1 issue: el repo guarda el qué y el porqué; el issue, quién, cuándo y estado.
 # - tipo: github | azure-boards | ninguno. Referencia del change (<ref>): github -> <repo>#<n>; azure-boards -> AB#<n>.
-# - repo: (github) repo donde viven los issues.
-# - etiquetas: (github) etiqueta de cada estado; los commands las ponen y quitan.
+# - organization: (azure-boards) organización de Azure DevOps.
+# - project: (azure-boards) proyecto de Azure Boards donde se crean los work items.
 seguimiento:
-  tipo: github
-  repo: SergioIzq/Synap-Workspace
-  etiquetas:
-    idea: idea
-    propuesta: propuesta
-    en_curso: en-curso
+  tipo: azure-boards
+  organization: sergioizq
+  project: Synap-Opsx
+  tipo_work_item: Issue
 
 # Grafo graphify unificado (/montrel:graph).
 # - excluir: prefijos de source_file que se quitan de cada grafo antes de fusionar.
