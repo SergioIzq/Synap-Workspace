@@ -23,6 +23,7 @@ Revisa los artefactos de planificación de un change y mantenlos coherentes. **N
 
 - Solo artefactos de planificación de este repo; si el plan requiere cambios de código, detente y sugiere `/montrel-azure:apply`.
 - Mantén `tasks.md` agrupado por repo con cabeceras `## N. <nombre> (<id>)` de `workspace.yaml`.
+- En los repos con `pruebas`, mantén las tareas de pruebas unitarias y de integración, y cubre los scenarios nuevos o cambiados.
 - No crees artefactos que no existan ni escribas en rutas glob sin resolver.
 - Si cambia la intención del change, recomienda un change nuevo con `/montrel-azure:propose`.
 - Si `/opsx:update` falla, detente y muestra el error.

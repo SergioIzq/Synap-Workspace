@@ -1,6 +1,6 @@
 ---
 name: "MONTREL Azure: Apply"
-description: "Implementar las tareas de un change en los repos afectados con comprobación de rama y build"
+description: "Implementar las tareas de un change en los repos afectados con comprobación de rama, build y pruebas"
 allowed-tools: Bash(openspec:*), Bash(git:*), Bash(graphify:*), AskUserQuestion, Skill, TodoWrite
 category: Workflow
 tags: [workflow, openspec, montrel, azure-devops]
@@ -8,7 +8,7 @@ tags: [workflow, openspec, montrel, azure-devops]
 
 Implementa las tareas de un change OpenSpec en los repos de código de `workspace.yaml`.
 
-**Wrapper fino:** las tareas las gobierna `/opsx:apply`. Los pasos 1 y 2 añaden las comprobaciones Montrel de rama y build por repo, y el paso 4 revisa la documentación según `revision_docs`.
+**Wrapper fino:** las tareas las gobierna `/opsx:apply`. Los pasos 1 y 2 añaden las comprobaciones Montrel de rama y build por repo, el paso 3 exige pruebas según `pruebas`, el paso 4 las ejecuta y el paso 5 revisa la documentación según `revision_docs`.
 
 **Entrada:** nombre opcional del change. Si sigue ambiguo tras revisar el contexto, pregunta; nunca elijas a ciegas.
 
@@ -31,8 +31,20 @@ Invoca `opsx:apply` mediante la **Skill tool**, pasando el nombre del change. Si
 
 - El código de cada tarea se edita en la `ruta` del repo de su sección; en este repo solo se marcan checkboxes.
 - Si una tarea es ambigua, aparece un bloqueo o una decisión de diseño, pausa y pregunta. Mantén los cambios acotados a cada tarea.
+- **Pruebas.** En cada repo con `pruebas` en `workspace.yaml`, todo comportamiento que implementes o cambies lleva pruebas **unitarias** y de **integración**, escritas según `pruebas.reglas` (framework, carpeta, nombres y dobles que ya usa el repo). Cada `#### Scenario` de las delta specs que toque ese repo queda cubierto por al menos una prueba. Si `tasks.md` no tiene tareas de pruebas para un repo con `pruebas`, avisa y sugiere `/montrel-azure:update` antes de seguir.
+- No marques como hecha una tarea cuyo comportamiento no tenga sus pruebas escritas.
 
-## Paso 4 — revisar documentación
+## Paso 4 — ejecutar pruebas
+
+Al acabar o pausar el bucle, para cada repo afectado que tenga `pruebas` en `workspace.yaml`, desde su `ruta`:
+
+1. Ejecuta en orden los comandos de `pruebas.unitarias`.
+2. Si hay `pruebas.integracion`: si `pruebas.integracion.requiere` no existe (p. ej. la configuración local de la base de pruebas), avisa de que se saltan y por qué. Si existe, ejecuta en orden sus `comandos`.
+3. Muestra una tabla `repo → unitarias / integración → pasan / fallan / saltadas`.
+
+Si alguna falla, muestra el error y pregunta mediante AskUserQuestion si corregir ahora, seguir sin corregir o parar. Nunca borres, saltes ni desactives una prueba para que pase.
+
+## Paso 5 — revisar documentación
 
 Al acabar o pausar el bucle, para cada repo afectado que tenga `revision_docs` en `workspace.yaml`, ejecuta `git -C "<ruta>" status --short` y selecciona los ficheros tocados a los que aplica esa regla.
 

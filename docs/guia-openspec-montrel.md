@@ -152,7 +152,7 @@ En el flujo normal **no se invocan los `/opsx:*` directamente**.
 |---|---|---|---|
 | **explore** | Clona repos que falten, comprueba rama de integración, `fetch` + `pull --ff-only` seguro, consulta el grafo | `/opsx:explore` | — |
 | **propose** | Crea o vincula el work item, comprueba `fuera_de_alcance`, ofrece rama si estás en una protegida | `/opsx:propose` (con restricciones multi-repo) | Actualiza tags, comenta en el work item y lo cuelga del `Feature` de su capacidad |
-| **apply** | Tabla repo → rama, ofrece `feature/<change>` en cada repo afectado, build previo opcional | `/opsx:apply` | Revisión de documentación (`revision_docs`) |
+| **apply** | Tabla repo → rama, ofrece `feature/<change>` en cada repo afectado, build previo opcional | `/opsx:apply` (exigiendo pruebas unitarias y de integración) | Ejecuta las pruebas (`pruebas`) y revisa la documentación (`revision_docs`) |
 | **update** | Resuelve el change y sus rutas reales | `/opsx:update` | Recomienda el siguiente comando |
 | **sync** | Resuelve el change | `/opsx:sync` | Anota specs tocadas (para el commit de archive) |
 | **pull-request** | *No delega*: lo hace todo él. Normalmente lo invoca `archive` (modo archive) | — | Commit Montrel, push, PR, verificación de codificación |
@@ -215,6 +215,72 @@ Por eso la rama de cada repo debe llamarse exactamente `feature/<change>`, como 
 **Contrapartida:** el change se archiva antes de que se revise y mergee el código. Para que las specs de
 `develop` no describan algo que aún no está, **la PR de specs se mergea la última**, cuando las de código
 ya están completadas. Si una PR de código se rechaza, la de specs tampoco debe completarse.
+
+### 4.2 Pruebas en el ciclo
+
+Cada repo puede declarar en `workspace.yaml` un bloque `pruebas`. Si lo tiene, el flujo trata las pruebas
+como parte del trabajo, no como un extra:
+
+| Momento | Qué pasa con las pruebas |
+|---|---|
+| `propose` | `tasks.md` incluye, en el grupo de cada repo, tareas de pruebas **unitarias** y de **integración** que nombran los `#### Scenario` que cubren. Todo scenario del repo queda cubierto. |
+| `update` | Mantiene esas tareas y cubre los scenarios nuevos o cambiados. |
+| `apply` (implementación) | Todo comportamiento nuevo o cambiado lleva sus pruebas según `pruebas.reglas`. Una tarea no se marca hecha sin ellas. Si `tasks.md` no las tiene, avisa y sugiere `update`. |
+| `apply` (al terminar) | Ejecuta `pruebas.unitarias` y, si existe el fichero de `pruebas.integracion.requiere`, `pruebas.integracion.comandos`. Muestra la tabla de resultados; si algo falla, pregunta si corregir, seguir o parar. Nunca desactiva una prueba para que pase. |
+
+**Del scenario a la prueba.** Los scenarios son la especificación verificable; las pruebas, su
+comprobación:
+
+```
+#### Scenario: Carga sin peso de entrada                ──►  [back]  integración: la barrera no se abre y la carga no avanza
+- WHEN el operador confirma la entrada sin peso          ──►  [back]  unitaria: la regla rechaza la carga sin peso
+- THEN la barrera no se abre y se muestra el motivo      ──►  [front] integración: el terminal muestra el motivo en español
+```
+
+**Unitaria o de integración:**
+
+| | Unitaria | Integración |
+|---|---|---|
+| Qué prueba | Una pieza aislada (regla, negocio, servicio, componente) | Varias piezas reales juntas |
+| Dependencias | Dobles (sustitutos) | Reales: base de datos en back; TestBed con plantilla y servicios en front |
+| Velocidad y requisitos | Rápida, sin nada externo | Más lenta; en back necesita la base de pruebas local |
+
+**Configuración en SimacGermanLNG.** El backend ya tiene la suite xUnit `SimacGermanGNL.Tests.AccesoDatos`,
+con `Unitarios/` (namespace `….Unitarios`) e `Integracion/` contra una SQL Server local configurada en un
+`comun.json` que no se versiona. El frontend tiene Karma y Jasmine configurados, pero todavía ningún
+`.spec.ts`: el primer change con pruebas de front las estrena.
+
+```yaml
+repos:
+  - id: back
+    # …
+    pruebas:
+      reglas: >-
+        xUnit en SimacGermanGNL/Tests/SimacGermanGNL.Tests.AccesoDatos, siguiendo su README.md.
+        Unitarias en Unitarios/ (namespace SimacGermanGNL.Tests.AccesoDatos.Unitarios) con dobles, sin base de datos.
+        Integración en Integracion/, sobre IntegracionTestBase o SecuenciaIntegracionTestBase, en la colección
+        «Integración con base de datos», registrando la limpieza de todo lo que crean.
+      unitarias:
+        - dotnet test SimacGermanGNL/Tests/SimacGermanGNL.Tests.AccesoDatos/SimacGermanGNL.Tests.AccesoDatos.csproj --filter "FullyQualifiedName~.Unitarios." -v q -nologo
+      integracion:
+        requiere: SimacGermanGNL/Tests/SimacGermanGNL.Tests.AccesoDatos/comun.json
+        comandos:
+          - dotnet test SimacGermanGNL/Tests/SimacGermanGNL.Tests.AccesoDatos/SimacGermanGNL.Tests.AccesoDatos.csproj --filter "FullyQualifiedName!~.Unitarios." -v q -nologo
+
+  - id: front
+    # …
+    pruebas:
+      reglas: >-
+        Jasmine y Karma con TestBed. Unitarias en <fichero>.spec.ts junto al fichero probado (servicios, pipes,
+        funciones, componentes con dependencias simuladas). Integración en <fichero>.integration.spec.ts:
+        componente con su plantilla y servicios reales, HTTP con provideHttpClientTesting y HttpTestingController,
+        sin backend real.
+      unitarias:
+        - npx ng test --watch=false --browsers=ChromeHeadless   # ejecuta todas las .spec.ts, también las de integración
+```
+
+En el frontend un solo comando ejecuta ambos tipos, porque las de integración no necesitan nada externo.
+Las de backend se separan por namespace para poder ejecutar las unitarias aunque no haya base de pruebas.
 
 ---
 
@@ -405,7 +471,7 @@ Cada dato vive en **un solo sitio**; los demás enlazan.
 | `README.md` | Guía para personas: filosofía, flujo de trabajo y comandos; igual para todos los clientes | Personas |
 | `AGENTS.md` | **Fuente única de reglas** para agentes (Claude Code y OpenCode) | IA |
 | `CLAUDE.md` | Solo un puntero a `AGENTS.md` y `workspace.yaml`; no duplica reglas | Claude Code |
-| `workspace.yaml` | **Único fichero que cambia entre proyectos**: cliente, ramas, seguimiento, repos (id, ruta, url, stack, alcance, build, `revision_docs`, grafo), exclusiones, fuera de alcance | Comandos Montrel |
+| `workspace.yaml` | **Único fichero que cambia entre proyectos**: cliente, ramas, seguimiento, repos (id, ruta, url, stack, alcance, build, `pruebas`, `revision_docs`, grafo), exclusiones, fuera de alcance | Comandos Montrel |
 | `openspec/config.yaml` | Contexto de **negocio** y reglas por artefacto para OpenSpec | CLI openspec / `/opsx:*` |
 | `openspec/specs/` | La verdad actual de cada capacidad | Todos |
 | `openspec/changes/archive/` | El porqué histórico de cada decisión | Todos |
@@ -462,6 +528,9 @@ specs, artefactos, comentarios, commits y PRs. Los nombres de capacidades y chan
 | Síntoma | Causa | Solución |
 |---|---|---|
 | `apply` no sabe qué repos tocar | `tasks.md` sin cabeceras `## N. <nombre> (<id>)` | `/montrel:update` para reagrupar |
+| `apply` avisa de que faltan tareas de pruebas | El change se propuso antes de añadir `pruebas` al repo | `/montrel:update` para añadirlas |
+| Las pruebas de integración de back salen «saltadas» | No existe el `comun.json` local de la base de pruebas | Configurarlo según el README de `SimacGermanGNL.Tests.AccesoDatos` |
+| `ng test` no arranca | No hay Chrome instalado para `ChromeHeadless` | Instalar Chrome o ajustar el comando en `pruebas` |
 | `archive` no abre PR de un repo que sí cambió | La rama no se llama `feature/<change>` | Renombrar la rama o abrir la PR con `/montrel:pull-request` |
 | Las specs de `develop` describen algo que no está en el código | Se completó la PR de specs antes que las de código | Mergear siempre la PR de specs la última |
 | `archive` vuelve a ejecutarse y no duplica PRs | Es lo esperado: en modo archive las PRs existentes se reutilizan | — |

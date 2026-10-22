@@ -1,0 +1,26 @@
+**Pruebas Unitarias (Unit Testing)**
+
+* **Enfoque:** Aislan y prueban la lógica de negocio (funciones, servicios) sin dependencias externas. Representan la base de la pirámide de testing por su velocidad y bajo coste de ejecución.
+* **En .NET Core:** Se utiliza **xUnit** o **NUnit**, combinados con librerías como **Moq** o **NSubstitute** para crear "mocks" (simulaciones) de bases de datos o llamadas HTTP externas.
+* **En Angular:** El estándar histórico es **Jasmine** junto al runner **Karma**, pero la tendencia de la industria es migrar a **Jest** debido a su mayor velocidad y ejecución en consola sin levantar un navegador real.
+
+**Pruebas de Integración (Integration Testing)**
+
+* **Enfoque:** Verifican que las diferentes capas del sistema interactúen correctamente (por ejemplo, el backend conectándose a la base de datos).
+* **En .NET Core:** Se emplea la clase `WebApplicationFactory` para levantar la API completa en memoria. La mejor práctica actual es utilizar el patrón **Testcontainers**, que levanta contenedores Docker efímeros con bases de datos reales (ej. SQL Server o PostgreSQL) durante el test, reemplazando al obsoleto proveedor in-memory de Entity Framework.
+* **En Angular:** Se usa `TestBed` para probar componentes que interactúan con el DOM y sus dependencias, verificando que la interfaz reaccione correctamente a los cambios de estado.
+
+**Pruebas de Extremo a Extremo (E2E - End-to-End)**
+
+* **Enfoque:** Simulan a un usuario real interactuando con la interfaz, validando el flujo completo desde el clic en Angular hasta el procesamiento y guardado en .NET Core. Estas pruebas son lentas y costosas, por lo que se reservan para los flujos más críticos (como un proceso de pago).
+* **Herramientas:** Herramientas antiguas como Selenium o Protractor están en desuso. El estándar actual son **Cypress** y **Playwright** (de Microsoft), destacando Playwright por su rendimiento y soporte nativo para múltiples pestañas y navegadores.
+
+**Pruebas de Contrato (Contract Testing)**
+
+* **Enfoque:** Fundamentales en arquitecturas modernas donde el front y el back evolucionan a distinto ritmo. Garantizan que el formato de los datos (JSON) que la API de .NET Core expone coincide exactamente con lo que Angular espera recibir, evitando que un cambio de nombre en una variable rompa la web.
+* **Herramientas:** **Pact** es el estándar de la industria.
+
+**Pruebas de Rendimiento y Carga (Performance Testing)**
+
+* **Enfoque:** Validan el comportamiento del backend bajo estrés, determinando cuántos usuarios concurrentes soporta la API antes de degradar sus tiempos de respuesta.
+* **Herramientas:** **k6** (de Grafana) o Apache **JMeter** disparando peticiones masivas a los endpoints de .NET Core.
