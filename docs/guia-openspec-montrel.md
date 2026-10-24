@@ -310,7 +310,7 @@ Reglas:
   confirma antes. En `archive`, el paso a `cerrado` es automático.
 - El tag `cerrado` se pone al **abrir** las PRs, no al mergearlas: indica que el trabajo está entregado
   para revisión. El estado del work item (Resolved/Closed) sí cambia al completarse la PR de specs.
-- Nadie asigna el work item automáticamente: se asigna a mano en Azure Boards.
+- `propose` pasa el work item a `Doing` y lo asigna al autor (`git config user.email`, con reintento por `az account show`); si ya tiene asignado, no se cambia.
 - Los tags se crean solos en Azure; no hace falta darlos de alta.
 
 ### 5.2 Configuración en `workspace.yaml`
