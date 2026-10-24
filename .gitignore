@@ -5,3 +5,17 @@ Synap-Frontend/
 
 .env
 docker-compose.override.yml
+
+# Grafo graphify unificado (artefacto local, se regenera con /montrel:graph)
+/graphify-out/
+
+# Temporales de los wrappers Montrel
+commit_msg.txt
+pr-titulo.txt
+pr-cuerpo.md
+
+# Lock temporal de openspec archive
+openspec/changes/archive/.openspec-archive.lock
+
+# Configuración personal de Claude Code
+.claude/settings.local.json

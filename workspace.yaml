@@ -1,0 +1,57 @@
+# Datos del proyecto. ÚNICO fichero que cambia entre proyectos:
+# los comandos /montrel:* lo leen y no contienen nada específico.
+
+cliente: Synap
+
+ramas:
+  integracion: main      # base de las ramas de trabajo y destino de las PRs
+  protegidas: [main]
+
+# Seguimiento de funcionalidades. 1 change = 1 issue: el repo guarda el qué y el porqué; el issue, quién, cuándo y estado.
+# - tipo: github | azure-boards | ninguno. Referencia del change (<ref>): github -> <repo>#<n>; azure-boards -> AB#<n>.
+# - organization: (azure-boards) organización de Azure DevOps.
+# - project: (azure-boards) proyecto de Azure Boards donde se crean los work items.
+# - tipo_work_item: (azure-boards) tipo del work item. El proceso Basic solo ofrece Issue/Epic/Task: el tipo de change (feature, fix...) va como etiqueta.
+# - estados: (azure-boards) estado del work item en cada fase; deben existir en el proceso del proyecto.
+seguimiento:
+  tipo: azure-boards
+  organization: sergioizq
+  project: Synap-Opsx
+  tipo_work_item: Issue
+  estados:
+    propuesta: To Do
+    en_curso: Doing
+    cerrado: Done
+
+# Grafo graphify unificado (/montrel:graph).
+# - excluir: prefijos de source_file que se quitan de cada grafo antes de fusionar.
+graphify:
+  excluir: [openspec/, .claude/, .opencode/, .github/]
+
+# Repos de código. Aquí van DENTRO de este repo (Synap-Backend/ y Synap-Frontend/, ignorados en .gitignore).
+# - id: identificador corto; también es la marca [ID] en specs y la cabecera de tasks.md.
+# - build: comandos que se ejecutan desde la raíz del repo (opcional).
+# - revision_docs: regla de documentación que se revisa en los ficheros tocados antes del commit (opcional).
+# - grafo: propio | extraer | ninguno. Si se omite: propio si existe <ruta>/graphify-out/graph.json, extraer si no.
+repos:
+  - id: back
+    nombre: Backend
+    ruta: Synap-Backend
+    url: https://github.com/SergioIzq/Synap-Backend.git
+    stack: .NET 10 (DDD + Hexagonal + CQRS con MediatR, EF Core), PostgreSQL + pgvector; servicio de IA en Python (FastAPI) en ai-service/
+    alcance: Toda la solución Synap.slnx y ai-service/
+    build:
+      - dotnet build Synap.slnx -v q -nologo
+      - cd ai-service && python -m pytest -q tests/test_groq_provider.py tests/test_assistant_api.py   # tests sin red ni base de datos
+
+  - id: front
+    nombre: Frontend
+    ruta: Synap-Frontend
+    url: https://github.com/SergioIzq/Synap-Frontend.git
+    stack: Angular 22 (standalone, signal stores por feature), PrimeNG 22, PWA
+    alcance: Toda la aplicación
+    build:
+      - npm run build
+
+# Lo que este flujo no toca. Si un change lo necesita, se trabaja con el flujo propio de ese repo.
+fuera_de_alcance: []
