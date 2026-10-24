@@ -56,16 +56,8 @@ backup_database() {
     echo "deploy: postgres no está en marcha, se omite la copia previa" >&2
     return 0
   fi
-  mkdir -p "$backup_dir"
-  local file="$backup_dir/predeploy-$(date -u +%Y%m%dT%H%M%SZ).sql.gz"
-  # Las variables POSTGRES_* ya existen dentro del contenedor, no hace falta leerlas aquí.
-  if ! docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip > "$file"; then
-    rm -f "$file"
-    fail "no se pudo hacer la copia previa de la base de datos"
-  fi
-  [ -s "$file" ] || { rm -f "$file"; fail "la copia previa salió vacía"; }
-  echo "deploy: copia previa en $file"
-  find "$backup_dir" -name 'predeploy-*.sql.gz' -mtime +7 -delete
+  SYNAP_BACKUP_DIR="$backup_dir" "$root/scripts/backup.sh" predeploy \
+    || fail "no se pudo hacer la copia previa de la base de datos"
 }
 
 set_env_tag() {

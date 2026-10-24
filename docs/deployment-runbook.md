@@ -244,8 +244,9 @@ unos segundos de corte.
 eso cada migración debe funcionar con la versión inmediatamente anterior de la aplicación: solo
 añadir (tablas, columnas nulables o con valor por defecto). Borrar o renombrar se hace en dos
 despliegues: primero se deja de usar lo antiguo, y en el siguiente se elimina. Antes de cada
-reinicio de `synap-api`, `deploy.sh` guarda un volcado `predeploy-*.sql.gz` en
-`/var/backups/synap` (se borran los de más de 7 días); si falla la copia, no se despliega.
+reinicio de `synap-api`, `deploy.sh` guarda con `scripts/backup.sh` un volcado
+`predeploy-*.sql.gz` en `/var/backups/synap` (se borran los de más de 7 días); si falla la copia,
+no se despliega.
 
 **`git pull` manual.** El clon `/var/www/Synap-Workspace` sigue en `main` (producción), no en
 `develop`, y no se actualiza solo. Tras fusionar un
@@ -294,16 +295,30 @@ desarrollo local; en el servidor haría que compose mezclara configuración ajen
    defecto», o al cambiarla una quedaría sin proteger): `proteger-main` y `proteger-develop`, con
    pull request obligatoria, sin borrado ni force-push y, en back y front, la comprobación `test`.
    En `proteger-main` el único método de fusión permitido es merge.
-8. Copia diaria de Postgres, fuera del volumen de la base de datos y con retención de 7 días
-   (como `root` o `deploy`, `crontab -e`):
+8. Copia diaria de Postgres con `scripts/backup.sh` (el mismo que usa `deploy.sh` para la copia
+   previa): deja `daily-<fecha UTC>.sql.gz` en `/var/backups/synap`, fuera del volumen de la base
+   de datos, solo legible por su dueño, y borra las de más de 7 días únicamente si la nueva es
+   válida. Un volcado que falla, sale vacío o está cortado no se guarda y no borra nada.
+   Requiere que el clon esté en un `main` que ya incluya el script (`git pull`). Programa el cron
+   del usuario `deploy` (`sudo crontab -u deploy -e`):
 
    ```
-   15 3 * * * cd /var/www/Synap-Workspace && docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip > /var/backups/synap/daily-$(date +\%F).sql.gz && find /var/backups/synap -name 'daily-*.sql.gz' -mtime +7 -delete
+   15 3 * * * /var/www/Synap-Workspace/scripts/backup.sh daily 2>&1 | logger -t synap-backup
    ```
 
-   Comprueba que al día siguiente hay un fichero nuevo y restáuralo en una base de pruebas
-   (`gunzip -c fichero | psql …`). Estas copias viven en el mismo servidor: guarda también una
-   fuera de él.
+   Pruébalo una vez a mano (`sudo -u deploy /var/www/Synap-Workspace/scripts/backup.sh`) y, al
+   día siguiente, comprueba que hay un fichero nuevo (`ls -l /var/backups/synap`) y que el log no
+   tiene errores (`journalctl -t synap-backup`). Restáuralo en una base de pruebas y bórrala:
+
+   ```bash
+   cd /var/www/Synap-Workspace
+   docker compose exec -T postgres sh -c 'createdb -U "$POSTGRES_USER" restore_test'
+   gunzip -c /var/backups/synap/daily-<fecha>.sql.gz | docker compose exec -T postgres sh -c 'psql -q -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d restore_test'
+   docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d restore_test -c "\dt"'
+   docker compose exec -T postgres sh -c 'dropdb -U "$POSTGRES_USER" restore_test'
+   ```
+
+   Estas copias viven en el mismo servidor: guarda también una fuera de él.
 
 ## 13. Cuando todo esto esté hecho
 
