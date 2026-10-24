@@ -1,7 +1,7 @@
 ---
 name: "MONTREL Azure: Apply"
 description: "Implementar las tareas de un change en los repos afectados con comprobación de rama, build y pruebas"
-allowed-tools: Bash(openspec:*), Bash(git:*), Bash(graphify:*), AskUserQuestion, Skill, TodoWrite
+allowed-tools: Bash(openspec:*), Bash(git:*), Bash(az:*), Bash(graphify:*), AskUserQuestion, Skill, TodoWrite
 category: Workflow
 tags: [workflow, openspec, montrel, azure-devops]
 ---
@@ -18,6 +18,11 @@ Implementa las tareas de un change OpenSpec en los repos de código de `workspac
 2. Lee `workspace.yaml` y `tasks.md`. Los repos afectados son los `<id>` de las cabeceras `## N. <nombre> (<id>)`. Si no hay cabeceras por repo o un id no existe en `workspace.yaml`, pregunta.
 3. Para cada repo afectado, ejecuta `git -C "<ruta>" branch --show-current` y muestra una tabla `repo → rama actual`. Pregunta mediante AskUserQuestion si desea crear `feature/<change>` en cada uno desde su rama actual o seguir en la actual.
 4. Si crea ramas, revisa `git -C "<ruta>" status --porcelain` en cada repo; si hay cambios, informa y no crees la rama en ese repo hasta que el usuario decida (nunca stash automático). Crea con `git -C "<ruta>" checkout -b feature/<change>`. Si ya existe, pregunta si cambiar a ella o seguir. La rama debe llamarse exactamente `feature/<change>`: `/montrel-azure:archive` la usa para decidir qué repos llevan PR.
+5. Si `seguimiento.tipo` es `azure-boards` y el `proposal.md` empieza con `Seguimiento: AB#<n>` (o `#<n>`), marca el work item en curso y asignado. `<org>` es `https://dev.azure.com/<seguimiento.organization>/`.
+   1. Lee su estado y asignado: `az boards work-item show --id <n> --organization "<org>" --query "{estado:fields.\"System.State\",asignado:fields.\"System.AssignedTo\".uniqueName,tags:fields.\"System.Tags\"}" --output json`.
+   2. Propón los cambios que falten y pregunta mediante AskUserQuestion si aplicarlos: pasar a `seguimiento.estados.en_curso` solo si el estado actual es `seguimiento.estados.propuesta` (nunca lo hagas retroceder desde `cerrado`) y asignarlo solo si no tiene asignado. Si no falta nada, informa y sigue. Si falta la etiqueta de tipo de change, propón añadirla con la regla «Tipo de change» de `AGENTS.md`.
+   3. Tras confirmar, resuelve `<asignado>` con la regla «Asignado» de `AGENTS.md` y ejecuta `az boards work-item update --id <n> --organization "<org>" --state "<seguimiento.estados.en_curso>" --assigned-to "<asignado>" --output json` (omite el flag que no aplique; para etiquetas, `--fields "System.Tags=<lista separada por '; '>"`). Verifica el resultado leyendo `System.State` y `System.AssignedTo` y aplica el reintento de «Asignado» si hace falta.
+   4. Si `az` no está autenticado (`az account show` falla) o la actualización falla, avisa y continúa: el work item no bloquea la implementación.
 
 ## Paso 2 — build previo opcional
 
@@ -54,7 +59,7 @@ Al acabar o pausar el bucle, para cada repo afectado que tenga `revision_docs` e
 
 ## Reglas
 
-- No hagas commit desde apply ni toques el work item; el código se comitea por repo al archivar, cuando `/montrel-azure:archive` abre las PRs.
+- No hagas commit desde apply; el código se comitea por repo al archivar, cuando `/montrel-azure:archive` abre las PRs. El único cambio al work item es el del paso 1.5 (estado, asignado y, si falta, etiqueta de tipo), siempre confirmado.
 - Nunca registres secretos de producción ni de staging.
 - Si la implementación revela un problema de diseño, para y sugiere `/montrel-azure:update`.
 - Los comentarios y la interfaz/documentación van en español.

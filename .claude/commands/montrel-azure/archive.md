@@ -8,7 +8,7 @@ tags: [workflow, archive, montrel, azure-devops]
 
 Archiva un change implementado y abre sus pull requests: una por cada repo de código donde haya cambios y otra para este repo de specs.
 
-**Wrapper fino:** el paso 1 decide sin preguntar qué repos tienen cambios; el paso 2 delega el archivado en `/opsx:archive`; los pasos 3 y 5 delegan cada PR en `/montrel-azure:pull-request` en modo archive; el paso 4 propone el commit confirmado de este repo (nunca en una rama protegida); el paso 6 marca el work item como cerrado.
+**Wrapper fino:** el paso 1 decide sin preguntar qué repos tienen cambios; el paso 2 delega el archivado en `/opsx:archive`; los pasos 3 y 5 delegan cada PR en `/montrel-azure:pull-request` en modo archive; el paso 4 propone el commit confirmado de este repo (nunca en una rama protegida); el paso 6 deja el work item asignado, etiquetado y, si se elige, cerrado.
 
 **Entrada:** nombre opcional del change, que se pasa a `/opsx:archive`.
 
@@ -66,7 +66,7 @@ Sigue sus instrucciones. Anota de cada repo el id y la URL de la PR (creada o ya
    <lista real agrupada por área, relativa a este repo>
    ```
 
-   Usa la fecha real del entorno y convierte el nombre kebab-case a snake_case. Conserva las tildes y la `ñ`. `<cierre>` sale de la línea `Seguimiento: <ref>` del proposal: `Fixes <ref>` (con `<ref>` = `#<n>`): Azure Repos resuelve el work item cuando este commit llega a la rama por defecto mediante una PR. Omítelo si no hay `Seguimiento:`. Omite `PRs de código:` si el paso 3 no creó ninguna.
+   Usa la fecha real del entorno y convierte el nombre kebab-case a snake_case. Conserva las tildes y la `ñ`. `<cierre>` sale de la línea `Seguimiento: AB#<n>` (o `#<n>`) del proposal: `Fixes #<n>`, que Azure Repos enlaza con el work item. Omítelo si no hay `Seguimiento:`. Omite `PRs de código:` si el paso 3 no creó ninguna.
 4. Escribe el mensaje en `commit_msg.txt` en UTF-8 sin BOM, con ruta absoluta:
 
    ```powershell
@@ -88,15 +88,17 @@ Si el usuario rechaza, no modifiques el índice ni hagas commit; muestra el mens
 
 Solo si se creó el commit, invoca `montrel-azure:pull-request` con la **Skill tool** y los argumentos `specs <rama> --base <base> --modo-archive`. Esa PR lleva el `Fixes #<n>` y es la que cierra el work item.
 
-## Paso 6 — marcar el work item como cerrado
+## Paso 6 — dejar el work item al día
 
-Solo si se creó el commit y el proposal archivado empieza con `Seguimiento: #<n>`, sin preguntar. `<org>` es `https://dev.azure.com/<seguimiento.organizacion>/`.
+Solo si el proposal archivado empieza con `Seguimiento: AB#<n>` (o `#<n>`). `<org>` es `https://dev.azure.com/<seguimiento.organization>/`.
 
-1. Lee sus tags actuales: `az boards work-item show --id <n> --organization "<org>" --query "fields.\"System.Tags\"" --output tsv`.
-2. Quita `<etiquetas.en_curso>`, añade `<etiquetas.cerrado>` y conserva las demás. Azure sustituye la lista entera, así que escribe la lista resultante separada por `; `.
-3. Ejecuta `az boards work-item update --id <n> --organization "<org>" --fields "System.Tags=<lista resultante>"`.
-
-No cambies el estado: lo resuelve Azure Repos con `Fixes #<n>` al completarse la PR de specs en la rama por defecto. Si `az` no está autenticado, avisa y continúa.
+1. Lee su estado, asignado y etiquetas: `az boards work-item show --id <n> --organization "<org>" --query "{estado:fields.\"System.State\",asignado:fields.\"System.AssignedTo\".uniqueName,tags:fields.\"System.Tags\"}" --output json`.
+2. Calcula lo que falta: asignarlo (regla «Asignado» de `AGENTS.md`) si no tiene asignado, y completar la etiqueta de tipo de change con el tipo clasificado en el paso 4 (regla «Tipo de change»: una sola etiqueta de tipo, conservando las demás).
+3. Pregunta mediante AskUserQuestion cómo cerrarlo (recomendado: la primera):
+   - **Lo cierra el merge de la PR de specs:** el estado sigue en `seguimiento.estados.en_curso` y pasa a `seguimiento.estados.cerrado` cuando se completa la PR del paso 5 con *Complete associated work items after merging* marcado.
+   - **Cerrarlo ahora:** pasa a `seguimiento.estados.cerrado` sin esperar al merge.
+4. Tras confirmar, aplica con `az boards work-item update --id <n> --organization "<org>" [--assigned-to "<asignado>"] [--state "<seguimiento.estados.cerrado>"] [--fields "System.Tags=<lista separada por '; '>"] --output json` (solo los flags que apliquen) y verifica el resultado leyendo el work item. Nunca hagas retroceder el estado.
+5. Si `az` no está autenticado o la actualización falla, avisa y continúa.
 
 ## Salida
 

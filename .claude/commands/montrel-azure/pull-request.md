@@ -182,7 +182,7 @@ ha decidido el repo, la rama origen y la base. En este modo:
    - **Motivo de los cambios / Descripción de la solución**: busca en este repo de specs (`openspec list
      --json` y `openspec/changes/archive/`) un change de OpenSpec ligado a esta rama — un change
      archivado o activo cuyo nombre coincida con el de la rama (`feature/<change>`) o esté referenciado en
-     los mensajes de commit. Si el `proposal.md` empieza con `Seguimiento: #<n>`, termina el cuerpo con
+     los mensajes de commit. Si el `proposal.md` empieza con `Seguimiento: AB#<n>` (o `#<n>`), termina el cuerpo con
      `#<n>` y anota `<n>` como `<work-item>` para enlazarlo en el paso 10.
      En los repos de código nunca uses `Fixes`/`Closes`: el work item lo resuelve el commit de `/montrel-azure:archive` (`Fixes #<n>`) al mergearse en este repo de specs. Busca el change también en `openspec/changes/archive/*-<change>/`: en modo archive ya está archivado. Si lo encuentras, lee su `proposal.md` (razón → Motivo) y `design.md`/`tasks.md`
      (enfoque tomado → Descripción). **Si no hay ningún change que coincida**, derívalos directamente de

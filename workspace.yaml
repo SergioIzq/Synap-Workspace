@@ -11,11 +11,17 @@ ramas:
 # - tipo: github | azure-boards | ninguno. Referencia del change (<ref>): github -> <repo>#<n>; azure-boards -> AB#<n>.
 # - organization: (azure-boards) organización de Azure DevOps.
 # - project: (azure-boards) proyecto de Azure Boards donde se crean los work items.
+# - tipo_work_item: (azure-boards) tipo del work item. El proceso Basic solo ofrece Issue/Epic/Task: el tipo de change (feature, fix...) va como etiqueta.
+# - estados: (azure-boards) estado del work item en cada fase; deben existir en el proceso del proyecto.
 seguimiento:
   tipo: azure-boards
   organization: sergioizq
   project: Synap-Opsx
   tipo_work_item: Issue
+  estados:
+    propuesta: To Do
+    en_curso: Doing
+    cerrado: Done
 
 # Grafo graphify unificado (/montrel:graph).
 # - excluir: prefijos de source_file que se quitan de cada grafo antes de fusionar.
