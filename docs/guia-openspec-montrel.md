@@ -306,8 +306,8 @@ Reglas:
 
 - En los repos de código **nunca** se usa `Fixes`: el work item se cierra con el commit de archive, en el
   repo de specs.
-- En `propose`, toda escritura en el work item (crear, comentar, cambiar tags, enlazar el `Feature`) se
-  confirma antes. En `archive`, el paso a `cerrado` es automático.
+- En `propose`, el work item se crea sin preguntar si la entrada no trae uno; el resto de escrituras
+  (comentar, cambiar tags, enlazar el `Feature`) se confirman antes. En `archive`, el paso a `cerrado` es automático.
 - El tag `cerrado` se pone al **abrir** las PRs, no al mergearlas: indica que el trabajo está entregado
   para revisión. El estado del work item (Resolved/Closed) sí cambia al completarse la PR de specs.
 - `propose` pasa el work item a `Doing` y lo asigna al autor (`git config user.email`, con reintento por `az account show`); si ya tiene asignado, no se cambia.

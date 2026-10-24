@@ -3,9 +3,10 @@
 
 cliente: Synap
 
+# main es producción: solo recibe la PR develop → main (merge commit), que despliega y crea el tag vX.Y.Z.
 ramas:
-  integracion: main      # base de las ramas de trabajo y destino de las PRs
-  protegidas: [main]
+  integracion: develop   # base de las ramas de trabajo y destino de las PRs
+  protegidas: [main, develop]
 
 # Seguimiento de funcionalidades. 1 change = 1 issue: el repo guarda el qué y el porqué; el issue, quién, cuándo y estado.
 # - tipo: github | azure-boards | ninguno. Referencia del change (<ref>): github -> <repo>#<n>; azure-boards -> AB#<n>.

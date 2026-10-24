@@ -16,13 +16,13 @@ Propón un nuevo change de OpenSpec para el cliente de `workspace.yaml` y genera
 
 1. Si no hay entrada, pregunta mediante AskUserQuestion qué quiere construir o corregir. Deriva un nombre kebab-case y no continúes hasta entender la intención.
 2. Resuelve la referencia de seguimiento `<ref>` según `seguimiento.tipo` de `workspace.yaml`. `<org>` es `https://dev.azure.com/<seguimiento.organization>/`, `<proyecto>` es `seguimiento.project` y `<area>` es `seguimiento.area` (si falta, el área raíz: `<proyecto>`):
-   - **`azure-boards`:** si la entrada es `#<n>`, `AB#<n>` o la URL de un work item, léelo con `az boards work-item show --id <n> --organization "<org>" --output json` (`System.Title`, `System.Description`, `System.Tags`, `System.State`) y úsalo como descripción del trabajo. Si no, pregunta mediante AskUserQuestion si crear un work item, vincular uno existente (`#<n>`) o seguir sin work item. Para crearlo, infiere `<tipo>` (feature, fix, refactor, docs, test, chore o release) con la regla «Tipo de change» de `AGENTS.md`, muestra título, descripción (la intención en dos o tres líneas; el detalle vivirá en el change) y `<tipo>`, espera confirmación (el usuario puede corregir el tipo), escribe título y descripción en ficheros UTF-8 sin BOM (la descripción en HTML simple con `<p>`, porque Azure Boards la guarda como HTML) y ejecuta:
+   - **`azure-boards`:** si la entrada es `#<n>`, `AB#<n>` o la URL de un work item, léelo con `az boards work-item show --id <n> --organization "<org>" --output json` (`System.Title`, `System.Description`, `System.Tags`, `System.State`) y úsalo como descripción del trabajo. Si no, crea el work item sin preguntar ni pedir confirmación: infiere `<tipo>` (feature, fix, refactor, docs, test, chore o release) con la regla «Tipo de change» de `AGENTS.md`, redacta título y descripción (la intención en dos o tres líneas; el detalle vivirá en el change), escribe título y descripción en ficheros UTF-8 sin BOM (la descripción en HTML simple con `<p>`, porque Azure Boards la guarda como HTML) y ejecuta:
 
      ```text
      az boards work-item create --organization "<org>" --project "<proyecto>" --type "<seguimiento.tipo_work_item>" --area "<area>" --title "@<fichero-titulo>" --description "@<fichero-descripcion>" --fields "System.Tags=<tipo>" --output json
      ```
 
-     Lee `id` del JSON; el estado inicial es `seguimiento.estados.propuesta`. `<ref>` es `AB#<n>`.
+     Lee `id` del JSON; el estado inicial es `seguimiento.estados.propuesta`. `<ref>` es `AB#<n>`. Informa en una línea del work item creado (id, título y tipo); el usuario puede corregir el tipo después.
    - **`ninguno` o sin bloque `seguimiento`:** no hay `<ref>`.
    Si hay `<ref>`, la primera línea del `proposal.md` es `Seguimiento: <ref>`: así lo encuentran los demás commands.
 3. Lee `workspace.yaml`. Si el trabajo cae en `fuera_de_alcance`, para y sugiere el flujo propio de ese repo.
@@ -55,5 +55,5 @@ Propón un nuevo change de OpenSpec para el cliente de `workspace.yaml` y genera
 - El tipo de change nunca se expresa con el tipo de work item (siempre `seguimiento.tipo_work_item`), sino con la etiqueta de tipo. El work item se asigna y pasa a en curso aquí (paso 6); `/montrel-azure:apply` solo corrige lo que falte.
 - Si el change ya existe, pregunta si continuar el existente o crear otro; no lo sobrescribas.
 - Si `/opsx:propose` falla, detente y muestra el error; no suplas su lógica a mano.
-- Si `az` no está autenticado (`az account show` falla), dile al usuario que ejecute `az login` y pregunta si seguir sin work item.
+- Si `az` no está autenticado (`az account show` falla), dile al usuario que ejecute `az login` y pregunta si seguir sin work item. Es la única pregunta sobre crear el work item.
 - Si algún repo afectado tiene `revision_docs` en `workspace.yaml`, comunica que `/montrel-azure:apply` y `/montrel-azure:pull-request` revisarán esa regla en los ficheros tocados.
