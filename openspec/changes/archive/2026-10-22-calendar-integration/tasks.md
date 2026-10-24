@@ -26,9 +26,9 @@ Orden: primero el backend, que el frontend necesita (persistencia → lectura �
 
 ## 2. Frontend (front)
 
-- [ ] 2.1 Añadir el estado del calendario y `googleCalendarAvailable` a los modelos de settings, y a `settings.service.ts` los métodos `startGoogleCalendar`, `connectCalDav` y `disconnectCalendar`. Verificar con tests de `settings.service.spec.ts`
-- [ ] 2.2 Añadir al `settings.store.ts` las acciones de conectar y desconectar y la lectura de `?calendar=connected|denied|error` al volver de Google, con la notificación en español, limpiando el parámetro de la URL. Verificar con un test del store
-- [ ] 2.3 Crear `calendar-settings.component.ts`: estado conectado o no, botón de Google solo si está disponible, formulario CalDAV (URL, usuario y contraseña, con la nota sobre la contraseña de aplicación y la de que Google se conecta con su botón), aviso visible de reconexión, y reconectar/desconectar con confirmación. Integrarlo en `settings.page.ts`. Verificar con su `.spec.ts` y a ojo en anchos de móvil y escritorio
-- [ ] 2.4 Mostrar "Calendario consultado: …" sin enlace en la lista de acciones del asistente. Verificar con un test del componente que muestra las acciones
-- [ ] 2.5 Ejecutar `npm run build` y los tests de `front`, y comprobar que pasan
-- [ ] 2.6 Con la app en marcha (back y front), conectar un CalDAV real, preguntar "¿qué tengo mañana?", pedir "recuérdame X una hora antes de <evento>", pedir un briefing bajo demanda y comprobar la sección de calendario. Después desconectar y comprobar que el briefing ya no muestra eventos
+- [x] 2.1 Añadir el estado del calendario y `googleCalendarAvailable` a los modelos de settings, y a `settings.service.ts` los métodos `startGoogleCalendar`, `connectCalDav` y `disconnectCalendar`. Verificar con tests de `settings.service.spec.ts`
+- [x] 2.2 Añadir al `settings.store.ts` las acciones de conectar y desconectar y la lectura de `?calendar=connected|denied|error` al volver de Google, con la notificación en español, limpiando el parámetro de la URL. Verificar con un test del store
+- [x] 2.3 Crear `calendar-settings.component.ts`: estado conectado o no, botón de Google solo si está disponible, formulario CalDAV (URL, usuario y contraseña, con la nota sobre la contraseña de aplicación y la de que Google se conecta con su botón), aviso visible de reconexión, y reconectar/desconectar con confirmación. Integrarlo en `settings.page.ts`. Verificar con su `.spec.ts` y a ojo en anchos de móvil y escritorio
+- [x] 2.4 Mostrar "Calendario consultado: …" sin enlace en la lista de acciones del asistente. Verificar con un test del componente que muestra las acciones
+- [x] 2.5 Ejecutar `npm run build` y los tests de `front`, y comprobar que pasan
+- [x] 2.6 Con la app en marcha (back y front), conectar un CalDAV real, preguntar "¿qué tengo mañana?", pedir "recuérdame X una hora antes de <evento>", pedir un briefing bajo demanda y comprobar la sección de calendario. Después desconectar y comprobar que el briefing ya no muestra eventos
