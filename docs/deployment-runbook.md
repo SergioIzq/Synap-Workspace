@@ -203,10 +203,17 @@ el login funciona solo con la nueva. Si el correo no llega, mira los errores en
 
 ## 11. Despliegue continuo (CI/CD)
 
-Cada fusión en `main` de `Synap-Backend` o `Synap-Frontend` ejecuta en GitHub Actions
-`test` → `publish` → `deploy`:
+**Ramas.** En los tres repos `develop` es la rama de integración y la rama por defecto: las ramas
+de trabajo salen de ella y sus pull requests van a ella. Fusionar en `develop` no publica ni
+despliega nada. `main` es producción: solo recibe la pull request `develop → main`, que se fusiona
+**con merge commit** (squash y rebase están desactivados en `main` para que las dos ramas no
+diverjan). Esa fusión es el paso a producción.
 
-1. `test`: compila (y en back pasa los pytest sin red). En una pull request solo corre esto, sin secretos.
+Cada fusión en `main` de `Synap-Backend` o `Synap-Frontend` ejecuta en GitHub Actions
+`test` → `publish` → `deploy` → `tag`:
+
+1. `test`: compila (y en back pasa los pytest sin red). En una pull request a `develop` o a `main`
+   solo corre esto, sin secretos.
 2. `publish`: construye y publica en GHCR `ghcr.io/sergioizq/synap-api`, `synap-ai` (back) y
    `synap-frontend` (front), con el SHA completo del commit y `latest`.
 3. `deploy`: por SSH ejecuta `scripts/deploy.sh <servicios> <sha>` en el VPS, que:
@@ -215,6 +222,14 @@ Cada fusión en `main` de `Synap-Backend` o `Synap-Frontend` ejecuta en GitHub A
    `synap-ai`; front: `synap-frontend`; `postgres` no se toca) y espera a que su `HEALTHCHECK`
    sea `healthy` (máximo 180 s, `SYNAP_DEPLOY_TIMEOUT`). Si no lo es, el job sale en rojo
    indicando qué servicio falla.
+4. `tag`: solo si `deploy` terminó bien, crea sobre el commit el tag SemVer siguiente subiendo el
+   patch (`v1.0.0` el primero, luego `v1.0.1`…). Si el deploy falla, no hay versión.
+
+**Versiones.** Cada tag `vX.Y.Z` marca algo que llegó a producción. En este repo,
+`.github/workflows/release-tag.yml` crea el tag en cada push a `main` (aquí no hay deploy desde CI).
+Para subir minor o major, crea el tag a mano sobre `main` (`git tag -a v1.1.0 -m v1.1.0 origin/main`
+y `git push origin v1.1.0`); la siguiente versión automática parte de él (`v1.1.1`). Un rollback
+por `workflow_dispatch` no crea versión.
 
 El despliegue no pide aprobación y no hay compilación en el VPS. Un reinicio de la API implica
 unos segundos de corte.
@@ -232,7 +247,8 @@ despliegues: primero se deja de usar lo antiguo, y en el siguiente se elimina. A
 reinicio de `synap-api`, `deploy.sh` guarda un volcado `predeploy-*.sql.gz` en
 `/var/backups/synap` (se borran los de más de 7 días); si falla la copia, no se despliega.
 
-**`git pull` manual.** El clon `/var/www/Synap-Workspace` no se actualiza solo. Tras fusionar un
+**`git pull` manual.** El clon `/var/www/Synap-Workspace` sigue en `main` (producción), no en
+`develop`, y no se actualiza solo. Tras fusionar un
 cambio de `docker-compose.yml` o `scripts/deploy.sh` hay que hacer `git pull` en el VPS, antes
 de que el siguiente despliegue dependa de él.
 
@@ -273,8 +289,11 @@ desarrollo local; en el servidor haría que compose mezclara configuración ajen
    aprobación) con estos secretos de entorno: `VPS_HOST`, `VPS_USER` (`deploy`), `VPS_SSH_KEY`
    (la privada) y `VPS_HOST_KEY` (la línea de `known_hosts` del servidor, de
    `ssh-keyscan -t ed25519 <VPS_HOST>`). Pégalos en GitHub, nunca en un chat ni en un repo.
-7. Activa la protección de `main` en `Synap-Backend`, `Synap-Frontend` y este repo exigiendo la
-   comprobación `test` (en este repo no hay CI aún: exige solo pull request).
+7. Protege `main` y `develop` en `Synap-Backend`, `Synap-Frontend` y este repo con dos rulesets
+   que nombren cada rama explícitamente (`refs/heads/main` y `refs/heads/develop`, nunca «rama por
+   defecto», o al cambiarla una quedaría sin proteger): `proteger-main` y `proteger-develop`, con
+   pull request obligatoria, sin borrado ni force-push y, en back y front, la comprobación `test`.
+   En `proteger-main` el único método de fusión permitido es merge.
 8. Copia diaria de Postgres, fuera del volumen de la base de datos y con retención de 7 días
    (como `root` o `deploy`, `crontab -e`):
 
