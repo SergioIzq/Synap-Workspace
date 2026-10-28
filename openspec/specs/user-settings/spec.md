@@ -89,24 +89,24 @@ The web app SHALL provide a Settings page reachable from the main navigation, co
 - **WHEN** a user returns to the Settings page after generating a token
 - **THEN** the page shows only whether a token exists and since when, never its value
 
-### Requirement: Sección "Calendario" en Configuración
-La página de Configuración SHALL incluir una sección "Calendario" que muestre si hay un calendario conectado y, si lo hay, el proveedor, la cuenta conectada, desde cuándo y si necesita reconectarse. Sin calendario conectado SHALL ofrecer conectar Google Calendar (solo cuando el despliegue lo permite) y conectar un calendario CalDAV con un formulario de URL, usuario y contraseña que explique que conviene una contraseña de aplicación. Con un calendario conectado SHALL ofrecer reconectarlo y desconectarlo, y la desconexión SHALL pedir confirmación. Todos los mensajes SHALL estar en español.
+### Requirement: Sección "Calendario" con conexión CalDAV
+La página de Configuración SHALL incluir una sección "Calendario" que muestre si hay un calendario conectado y, si lo hay, la cuenta conectada, desde cuándo y si necesita reconectarse. Sin calendario conectado SHALL ofrecer conectar un calendario CalDAV con un formulario de URL, usuario y contraseña que explique que conviene una contraseña de aplicación. No SHALL ofrecer conectar Google Calendar. Con un calendario conectado SHALL ofrecer reconectarlo y desconectarlo, y la desconexión SHALL pedir confirmación. El estado que muestra la sección SHALL ser el que devuelve la API, y todos los mensajes SHALL estar en español.
 
 #### Scenario: Sin calendario
 - **WHEN** un usuario sin calendario conectado abre Configuración
-- **THEN** la sección "Calendario" ofrece conectar Google Calendar y conectar un calendario CalDAV
+- **THEN** la sección "Calendario" ofrece conectar un calendario CalDAV y no muestra ninguna opción de Google
 
 #### Scenario: Calendario conectado
-- **WHEN** un usuario con Google conectado abre Configuración
-- **THEN** la sección muestra Google, la cuenta conectada y desde cuándo, con opciones para reconectar y desconectar
+- **WHEN** un usuario con un calendario CalDAV conectado abre Configuración
+- **THEN** la sección muestra la cuenta conectada y desde cuándo, con opciones para reconectar y desconectar
+
+#### Scenario: Conexión recién hecha
+- **WHEN** un usuario conecta un calendario CalDAV válido desde la sección
+- **THEN** la sección pasa a mostrarlo como conectado con su cuenta, sin recargar la página
 
 #### Scenario: Necesita reconectarse
 - **WHEN** la conexión de un usuario está marcada para reconectar
 - **THEN** la sección lo indica de forma visible y ofrece reconectar
-
-#### Scenario: Vuelta del consentimiento de Google
-- **WHEN** un usuario vuelve a Configuración tras el consentimiento de Google
-- **THEN** ve una notificación en español de que el calendario se conectó, o de por qué no se conectó
 
 #### Scenario: Desconexión confirmada
 - **WHEN** un usuario pulsa desconectar el calendario

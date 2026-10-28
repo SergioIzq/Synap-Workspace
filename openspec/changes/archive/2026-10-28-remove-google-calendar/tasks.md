@@ -1,0 +1,17 @@
+# Tasks
+
+Orden: primero el backend, que fija el contrato, y después el frontend, que se adapta a él (design, Decisión 2).
+
+## 1. Backend (back)
+
+- [x] 1.1 Quitar el inicio de conexión con Google de `User` y sus columnas en `UserConfiguration`, y dejar `CalendarProvider` solo con `CalDav`. Generar la migración `RemoveGoogleCalendar`, que borra `calendar_oauth_nonce` y `calendar_oauth_expires_at` y las filas con `provider = 'Google'` (design, Decisión 3). Verificar que el `Down` recrea las columnas como nullable y que un test de integración con una conexión CalDAV existente sigue leyéndola después de migrar
+- [x] 1.2 Eliminar `GoogleCalendarClient` y su registro en `DependencyInjection`, `GoogleCalendarOptions`, `IGoogleCalendarAuthorization`, `GoogleOAuthState`, `GoogleCalendarCommands`, `CalendarCredentials.Google` y `CalendarErrors.GoogleNotAvailable`. Verificar con `grep -ri google` sobre `Synap.Domain`, `Synap.Application`, `Synap.Infrastructure` y `Synap.Api`, sin coincidencias de calendario
+- [x] 1.3 Eliminar `CalendarController` y la ruta `calendar/google/start` de `SettingsController`, y quitar `GoogleCalendarAvailable` de `CalendarSettingsResponse` y la dependencia de `GetSettingsQuery`. Verificar con un test de integración que `GET /api/settings` devuelve `calendar: { connection: … }` sin ningún campo de Google, y que las dos rutas de Google responden 404
+- [x] 1.4 Borrar los tests y fakes de Google (`GoogleCalendarClientTests`, `GoogleCalendarConnectApiTests`, `ApiGoogleCalendarFake`, `UserCalendarOAuthTests`) y adaptar los casos de Google de `CalendarSettingsApiTests`, `CalendarDisconnectApiTests`, `CalendarIsolationTests`, `CalendarConnectionTests`, `CalendarReaderTests`, `CalendarCredentialsProtectorTests`, `CalendarLogPrivacyTests`, `SettingsHandlersTests` y `ApiFixture` a CalDAV. Verificar que una credencial guardada con otra forma sigue marcando reconexión, y que pasan `dotnet build Synap.slnx` y la suite completa
+
+## 2. Frontend (front)
+
+- [x] 2.1 Rehacer el modelo del calendario en `settings.model.ts` con la forma de la API (`{ connection: { provider, account, connectedAt, needsReconnect, needsReconnectSince } | null }`) y quitar `CalendarKind` con `'Google'` y `GoogleCalendarAuthorization`. Verificar que `npm run build` falla solo donde se usaban, que es lo que corrigen 2.2 y 2.3
+- [x] 2.2 En `settings.service.ts`, leer el calendario del bloque `calendar` de `GET /api/settings`, conectar con `PUT /api/settings/calendar/caldav` y `{ url, username, password }`, desconectar con `DELETE`, y eliminar los métodos de Google. Verificar con `settings.service.spec.ts`, usando como fixtures respuestas copiadas de la forma exacta de la API (design, Decisión 2)
+- [x] 2.3 En `settings.store.ts` y `calendar-settings.component.ts`, quitar el botón de Google, `beginGoogleCalendarAuthorization`, `connectGoogleCalendar`, la lectura del código y del `state` de vuelta y `GOOGLE_STATE_KEY`. Mostrar la cuenta, desde cuándo y el aviso de reconexión a partir de `connection`, y el texto de ayuda solo para CalDAV. Verificar con los `.spec.ts` del store y del componente: sin calendario solo se ofrece CalDAV, conectado se ve la cuenta, y la marca de reconexión se muestra
+- [x] 2.4 Comprobación de punta a punta con la app y la API reales: conectar un servidor CalDAV público con HTTPS, ver la cuenta en Configuración, preguntar al asistente "¿qué tengo mañana?" y desconectar con confirmación. Verificar además que `npm run build` pasa y que no queda `google` en `src/app` salvo en iconos ajenos al calendario

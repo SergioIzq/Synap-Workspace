@@ -16,6 +16,17 @@ incluida.
 **Entrada**: opcionalmente el repo y/o la rama origen tras `/montrel:pull-request` (p. ej.
 `/montrel:pull-request <id> feature/<change>`). Si se omiten, se preguntan como se describe en los pasos 0 y 3.
 
+**Modo archive** (`<id> <rama> --base <base> --modo-archive`): lo usa `/montrel:archive`, que ya ha
+decidido el repo, la rama origen y la base. En este modo:
+
+- Pasos 0, 3 y 6: usa los valores recibidos sin preguntar ni mostrar la lista de ramas.
+- Paso 4: no aplica (la rama origen es `feature/<change>`).
+- Paso 7: si ya existe una PR abierta desde esa rama, no crees otra ni preguntes: devuelve su número y
+  URL y termina.
+- Paso 8: el change ya está archivado; búscalo en `openspec/changes/archive/*-<change>/`.
+- Se mantienen las confirmaciones del commit (paso 5) y del título y cuerpo de la PR (paso 9).
+- Termina devolviendo el número y la URL de la PR para que archive los anote.
+
 ## Pasos
 
 0. **(MONTREL multi-repo) Elegir el repositorio**
@@ -186,7 +197,7 @@ incluida.
      archivado o activo cuyo nombre coincida con el de la rama (`feature/<change>`) o esté referenciado en
      los mensajes de commit. Si el `proposal.md` empieza con `Seguimiento: <ref>`, termina el cuerpo con
      `Refs <ref>` (seguimiento `github`) o con `<ref>` (`azure-boards`), para que la plataforma vincule la PR.
-     En los repos de código nunca uses `Closes`/`Fixes`: el issue lo cierra el commit de `/montrel:archive` (`Closes <ref>`) al mergearse en este repo de specs. Si lo encuentras, lee su `proposal.md` (razón → Motivo) y `design.md`/`tasks.md`
+     En los repos de código nunca uses `Closes`/`Fixes`: el issue lo cierra `/montrel:archive` tras abrir las PRs. Si lo encuentras, lee su `proposal.md` (razón → Motivo) y `design.md`/`tasks.md`
      (enfoque tomado → Descripción). **Si no hay ningún change que coincida**, derívalos directamente de
      los mensajes de commit y del diff, y dilo explícitamente: son una inferencia, no una razón verificada
      — no la disfraces de otra cosa.
@@ -292,7 +303,7 @@ incluida.
 - Nunca inventes Motivo, Descripción ni Archivos modificados: se basan en `git log`/`git diff`, y cuando
   exista, en el `proposal.md`/`design.md`/`tasks.md` real de un change de OpenSpec que coincida; di
   explícitamente cuándo el contenido es una inferencia a partir de los commits.
-- Muestra siempre la lista de ramas y pregunta tanto por el origen como por el destino — nunca asumas
+- Fuera del modo archive, muestra siempre la lista de ramas y pregunta tanto por el origen como por el destino — nunca asumas
   ninguna de las dos, aunque solo haya una candidata obvia.
 - Nunca cambies de rama ni hagas push mientras el árbol de trabajo tenga cambios sin commitear en la rama
   de la que te vas (comprobación de rama sucia del paso 3).

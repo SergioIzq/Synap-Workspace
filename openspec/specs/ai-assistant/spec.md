@@ -377,7 +377,7 @@ An answer SHALL NOT state that the assistant created a note, added tags, remembe
 Cuando el usuario tiene un calendario conectado y su modelo admite acciones, el asistente SHALL poder, en la conversación global, leer los eventos del calendario en un intervalo para responder preguntas como "¿qué tengo mañana?" o "¿cuándo es la próxima reunión de sprint?". El intervalo SHALL expresarse con las palabras del usuario y resolverse por el sistema en su zona horaria, igual que el momento de un recordatorio. La lectura SHALL ser una acción de solo lectura: el asistente no SHALL crear, cambiar ni borrar eventos, y cuando se le pida SHALL decir que no puede hacerlo. Sin calendario conectado, o con la conexión marcada para reconectar, el asistente SHALL decirlo y remitir a Configuración en vez de inventar eventos. Las conversaciones acotadas a una nota o a una etiqueta no SHALL leer el calendario.
 
 #### Scenario: Qué tengo mañana
-- **WHEN** un usuario con Google conectado pregunta "¿qué tengo mañana?"
+- **WHEN** un usuario con un calendario CalDAV conectado pregunta "¿qué tengo mañana?"
 - **THEN** el asistente lee los eventos del día siguiente en su zona horaria y responde con ellos y sus horas
 
 #### Scenario: Próxima ocurrencia
