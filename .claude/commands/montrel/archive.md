@@ -1,41 +1,49 @@
 ---
 name: "MONTREL: Archive"
-description: "Archivar un change OpenSpec tras mergear sus PRs y proponer commit en el repo de specs"
+description: "Archivar un change OpenSpec, abrir las PRs de los repos con cambios y del repo de specs, y cerrar su issue"
 allowed-tools: Bash(openspec:*), Bash(git:*), Bash(az:*), Bash(gh:*), AskUserQuestion, Skill
 category: Workflow
 tags: [workflow, archive, montrel]
 ---
 
-Archiva un change completado y después propone el commit en este repo de specs.
+Archiva un change implementado, abre sus pull requests contra `ramas.integracion` (una por cada repo de código con cambios y otra para este repo de specs) y cierra el issue o work item del change.
 
-**Wrapper fino:** el paso 1 comprueba que el código ya esté mergeado; el paso 2 delega el archivado en `/opsx:archive`; los pasos 3 y 4 proponen el commit confirmado de este repo (nunca en una rama protegida) y preguntan por separado si hacer push. El código ya se comiteó por repo en `/montrel:pull-request`.
+**Wrapper fino:** el paso 1 decide sin preguntar qué repos tienen cambios; el paso 2 delega el archivado en `/opsx:archive`; los pasos 3 y 5 delegan cada PR en `/montrel:pull-request` en modo archive; el paso 4 propone el commit confirmado de este repo (nunca en una rama protegida); el paso 6 cierra el issue o work item.
 
 **Entrada:** nombre opcional del change, que se pasa a `/opsx:archive`.
 
-## Paso 1 — comprobar PRs de código
+## Paso 1 — detectar repos con cambios
 
-1. Resuelve el change y los repos afectados: los `<id>` de las cabeceras `## N. <nombre> (<id>)` de `tasks.md`, con su `ruta` de `workspace.yaml`.
-2. Para cada repo afectado, detecta el proveedor con `git -C "<ruta>" remote get-url origin` (mismos patrones que el paso 1 de `/montrel:pull-request`; nunca inventes owner, organización ni proyecto) y busca una PR completada desde `feature/<change>`:
+No preguntes qué repos incluir: decídelo con Git.
 
-   - **GitHub:** `gh pr list --repo <owner>/<repo> --head "feature/<change>" --state merged --json number,url`.
-   - **Azure DevOps:**
-
-   ```text
-   az repos pr list --organization "https://dev.azure.com/<organization>/" --project "<project>" --repository "<repository>" --source-branch "feature/<change>" --status completed --output json
-   ```
-
-3. Muestra una tabla `repo → PR completada (id) / ninguna`. Si falta alguna, pregunta mediante AskUserQuestion si continuar de todas formas o parar. Por defecto, parar.
-4. Si la CLI del proveedor (`gh`/`az`) no está autenticada, o el `origin` de un repo no es de GitHub ni de Azure DevOps, marca ese repo como «no comprobable» en la tabla y pregunta si continuar sin la comprobación.
+1. Resuelve el change. `<rama>` es `feature/<change>` y `<base>` es `ramas.integracion` de `workspace.yaml`.
+2. Para **cada** repo de `repos` de `workspace.yaml` (no solo los de `tasks.md`), con su `ruta`:
+   - Ejecuta `git -C "<ruta>" fetch origin --prune`.
+   - Si `<rama>` no existe ni en local ni en `origin`, el repo no tiene cambios.
+   - Si existe, tiene cambios cuando `git -C "<ruta>" rev-list --count origin/<base>..<rama>` es mayor que 0, o cuando `<rama>` es la rama actual y `git -C "<ruta>" status --porcelain` no está vacío.
+3. Muestra una tabla `repo → rama → commits por delante / cambios sin commitear → incluido sí/no`, solo como información.
+4. Compara con las cabeceras `## N. <nombre> (<id>)` de `tasks.md`. Si un repo de `tasks.md` no tiene cambios, o uno con cambios no está en `tasks.md`, avísalo en la tabla, pero no cambies la decisión.
+5. Si ningún repo de código tiene cambios, avisa y continúa: solo habrá PR de specs.
 
 ## Paso 2 — delegar archivado en `/opsx:archive`
 
 Invoca `opsx:archive` con la **Skill tool**, pasando el nombre del change. Sigue sus instrucciones: selección, checks de artefactos y tareas, sync de delta specs si procede, movimiento al archivo y resumen.
 
-Anota el change y el destino. Si `/opsx:archive` falla o se cancela, detente: no hay commit que proponer.
+Anota el change y el destino. Si `/opsx:archive` falla o se cancela, detente: no se abre ninguna PR ni se cierra el issue.
 
-## Paso 3 — proponer commit en el repo de specs
+## Paso 3 — PRs de los repos de código
 
-0. Ejecuta `git branch --show-current`. Si es una rama de `ramas.protegidas`, no comitees en ella: pregunta mediante AskUserQuestion si crear `feature/<change>` (o cambiar a ella si ya existe) o parar. Los ficheros sin commitear viajan con el cambio de rama; nunca hagas stash automático.
+Para cada repo incluido en el paso 1, en el orden de `workspace.yaml`, invoca `montrel:pull-request` con la **Skill tool** y estos argumentos:
+
+```text
+<id> <rama> --base <base> --modo-archive
+```
+
+Sigue sus instrucciones. Anota de cada repo el número y la URL de la PR (creada o ya existente). Si un repo falla, informa y sigue con los demás; al final, resume cuáles no tienen PR.
+
+## Paso 4 — proponer commit en el repo de specs
+
+0. Ejecuta `git branch --show-current`. Si es una rama de `ramas.protegidas`, no comitees en ella: pregunta mediante AskUserQuestion si crear `<rama>` (o cambiar a ella si ya existe) o parar. Los ficheros sin commitear viajan con el cambio de rama; nunca hagas stash automático.
 1. Reúne con `git status --short` los ficheros de este change en este repo: el change archivado y las specs sincronizadas. Ignora cualquier otro cambio.
 2. Lee el `proposal.md` archivado para clasificar el tipo: comportamiento nuevo `feature`, corrección `fix`, refactor `refactor`, solo docs `docs`, tests `test`, tooling `chore`, publicación `release`. Si es ambiguo, elige el más cercano y dilo.
 3. Propón un mensaje completo en español:
@@ -43,7 +51,7 @@ Anota el change y el destino. Si `/opsx:archive` falla o se cancela, detente: no
    ```text
    <tipo>/<YYYY-MM-DD>_<descripcion_breve>
 
-   Archiva el change de OpenSpec `<change-name>`. <cierre>
+   Archiva el change de OpenSpec `<change-name>`. <ref>
 
    Motivo:
    <resumen fiel de Why>
@@ -52,13 +60,13 @@ Anota el change y el destino. Si `/opsx:archive` falla o se cancela, detente: no
    <qué specs cambian, en frases completas>
 
    PRs de código:
-   <repo: PR <id>, por cada repo afectado>
+   <repo: PR <número>, por cada PR del paso 3>
 
    Ficheros modificados:
    <lista real agrupada por área, relativa a este repo>
    ```
 
-   Usa la fecha real del entorno y convierte el nombre kebab-case a snake_case. Conserva las tildes y la `ñ`. `<cierre>` sale de la línea `Seguimiento: <ref>` del proposal: `Closes <ref>` con seguimiento `github` (GitHub cierra el issue cuando esta PR se mergea en la rama por defecto) y `<ref>` con `azure-boards`. Omítelo si no hay `Seguimiento:`.
+   Usa la fecha real del entorno y convierte el nombre kebab-case a snake_case. Conserva las tildes y la `ñ`. `<ref>` sale de la línea `Seguimiento: <ref>` del proposal, como `Refs <ref>` con seguimiento `github` y `<ref>` con `azure-boards`: el issue lo cierra el paso 6, no el merge. Omítelo si no hay `Seguimiento:`. Omite `PRs de código:` si el paso 3 no creó ninguna.
 4. Escribe el mensaje en `commit_msg.txt` en UTF-8 sin BOM, con ruta absoluta:
 
    ```powershell
@@ -74,19 +82,34 @@ Anota el change y el destino. Si `/opsx:archive` falla o se cancela, detente: no
 6. Solo tras la confirmación, haz `git add` de las rutas enumeradas. Revisa el índice con `git status --short` y quita del stage cualquier ruta ajena con `git restore --staged <ruta>`. Ejecuta `git commit -F "commit_msg.txt"`; nunca `git add -A` ni `git add .`.
 7. Verifica el mensaje con `git log -1 --format=%B`.
 
-Si el usuario rechaza, no modifiques el índice ni hagas commit; muestra el mensaje para reutilizarlo.
+Si el usuario rechaza, no modifiques el índice ni hagas commit; muestra el mensaje para reutilizarlo y no sigas al paso 5.
 
-## Paso 4 — preguntar por push
+## Paso 5 — PR del repo de specs
 
-Solo si se creó el commit, pregunta mediante AskUserQuestion si desea hacer push a `origin`.
+Solo si se creó el commit, invoca `montrel:pull-request` con la **Skill tool** y los argumentos `specs <rama> --base <base> --modo-archive`. Anota su número y URL.
 
-- Si acepta, comprueba `git rev-parse --abbrev-ref --symbolic-full-name @{u}`; ejecuta `git push` si hay upstream o `git push -u origin <rama-actual>` si no.
-- Si rechaza, deja el commit local.
-- Nunca crees PR ni hagas merge desde este wrapper.
+## Paso 6 — cerrar el issue o work item
+
+Solo si el proposal archivado empieza con `Seguimiento: <ref>` y `seguimiento.tipo` no es `ninguno`. `<prs>` es la lista `repo: <URL>` de las PRs de los pasos 3 y 5.
+
+1. Lee su estado y asignado:
+   - **`github`:** `gh issue view <n> --repo <seguimiento.repo> --json state,title,assignees,url`.
+   - **`azure-boards`:** `az boards work-item show --id <n> --organization "https://dev.azure.com/<seguimiento.organization>/" --query "{estado:fields.\"System.State\",asignado:fields.\"System.AssignedTo\".uniqueName}" --output json`.
+2. Si ya está cerrado (`CLOSED` o `seguimiento.estados.cerrado`), dilo y termina el paso.
+3. Muestra el issue (título, asignado, URL) y el comentario de cierre que se añadirá: `Cerrado al archivar el change \`<change>\`. PRs:` seguido de `<prs>`. Pregunta mediante AskUserQuestion si cerrarlo ahora o dejarlo abierto.
+4. Tras confirmar, escribe el comentario en `<tmp>/issue-cierre.md` (UTF-8 sin BOM) y ciérralo:
+   - **`github`:** `gh issue close <n> --repo <seguimiento.repo> --reason completed --comment "$(cat <tmp>/issue-cierre.md)"`. Si tiene la etiqueta `seguimiento.etiquetas.en_curso`, quítala con `gh issue edit <n> --repo <seguimiento.repo> --remove-label "<etiqueta>"`.
+   - **`azure-boards`:** `az boards work-item update --id <n> --organization "https://dev.azure.com/<seguimiento.organization>/" --state "<seguimiento.estados.cerrado>" --discussion "@<tmp>/issue-cierre.md" --output json`.
+5. Verifica releyendo el estado como en el punto 1. Si la CLI no está autenticada o el cierre falla, avisa y continúa.
+
+## Salida
+
+Tabla final `repo → PR (número y URL) / sin cambios / fallo`, incluido `specs`, y el estado del issue o work item.
 
 ## Limpieza y reglas
 
-- Elimina `commit_msg.txt` después del intento, tanto si confirma como si cancela o falla: `Remove-Item ".\commit_msg.txt" -ErrorAction SilentlyContinue`.
-- Los pasos de commit y push no se ejecutan si el archivado falla o se cancela.
-- Este wrapper solo comitea en este repo de specs; nunca toca los repos de código.
-- Todo commit y push requiere confirmación explícita e independiente.
+- Elimina `commit_msg.txt` y `<tmp>/issue-cierre.md` después del intento, tanto si confirma como si cancela o falla: `Remove-Item ".\commit_msg.txt" -ErrorAction SilentlyContinue`.
+- No se abre ninguna PR ni se cierra el issue si el archivado falla o se cancela.
+- La selección de repos es automática; los commits, el texto de cada PR y el cierre del issue siguen requiriendo confirmación explícita.
+- Este wrapper solo comitea en este repo de specs; los commits de los repos de código los hace `/montrel:pull-request`.
+- Nunca mergees ninguna PR desde este wrapper.
